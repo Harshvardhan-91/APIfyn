@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: apifyn
+      POSTGRES_USER: apifyn
+      POSTGRES_PASSWORD: apifyn
+    ports:
+      - "5432:5432"
+    volumes:
+      - apifyn-postgres:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - apifyn-redis:/data
+
+volumes:
+  apifyn-postgres:
+  apifyn-redis:

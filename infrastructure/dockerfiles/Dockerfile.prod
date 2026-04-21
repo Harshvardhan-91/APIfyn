@@ -1,0 +1,10 @@
+FROM node:20-alpine AS base
+WORKDIR /app
+
+COPY package.json pnpm-workspace.yaml ./
+RUN corepack enable
+
+COPY . .
+RUN pnpm install --frozen-lockfile && pnpm build
+
+CMD ["pnpm", "start"]
