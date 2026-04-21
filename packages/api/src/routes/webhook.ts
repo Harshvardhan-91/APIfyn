@@ -80,14 +80,13 @@ router.post(
     if (webhookSecret && sig) {
       try {
         const crypto = await import("node:crypto");
-        const parts = sig.split(",").reduce(
-          (acc, part) => {
-            const [key, val] = part.split("=");
-            acc[key] = val;
-            return acc;
-          },
-          {} as Record<string, string>,
-        );
+        const parts: Record<string, string> = {};
+        for (const part of sig.split(",")) {
+          const idx = part.indexOf("=");
+          if (idx > 0) {
+            parts[part.slice(0, idx)] = part.slice(idx + 1);
+          }
+        }
         const signedPayload = `${parts.t}.${JSON.stringify(req.body)}`;
         const expected = crypto
           .createHmac("sha256", webhookSecret)

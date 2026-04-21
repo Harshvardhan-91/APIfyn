@@ -26,7 +26,7 @@ async function refreshGoogleToken(
 
 function extractSpreadsheetId(urlOrId: string): string {
   const match = urlOrId.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  return match ? match[1] : urlOrId;
+  return match?.[1] ?? urlOrId;
 }
 
 export class SheetsAddHandler implements IntegrationHandler {
