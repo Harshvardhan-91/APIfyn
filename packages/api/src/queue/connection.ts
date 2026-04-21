@@ -1,33 +1,27 @@
-import IORedis from "ioredis";
+import IORedis, { type RedisOptions } from "ioredis";
 import { createLogger } from "../utils/logger";
 
 const logger = createLogger();
 
 const connections: IORedis[] = [];
 
-function buildRedisOptions(): ConstructorParameters<typeof IORedis>[1] {
+function buildRedisOptions(): RedisOptions {
   const url = process.env.REDIS_URL || "redis://localhost:6379";
   const useTls = url.startsWith("rediss://");
-  return {
-    maxRetriesPerRequest: null,
-    ...(useTls && { tls: { rejectUnauthorized: false } }),
-  };
+  const opts: RedisOptions = { maxRetriesPerRequest: null };
+  if (useTls) {
+    opts.tls = { rejectUnauthorized: false };
+  }
+  return opts;
 }
 
-function getRedisUrl(): string {
-  return process.env.REDIS_URL || "redis://localhost:6379";
-}
-
-export function createRedisConnection(): IORedis {
-  const conn = new IORedis(getRedisUrl(), buildRedisOptions());
+export function getRedisConnection(): IORedis {
+  const url = process.env.REDIS_URL || "redis://localhost:6379";
+  const conn = new IORedis(url, buildRedisOptions());
   conn.on("connect", () => logger.info("Redis connected"));
   conn.on("error", (err) => logger.error("Redis error:", err));
   connections.push(conn);
   return conn;
-}
-
-export function getRedisConnection(): IORedis {
-  return createRedisConnection();
 }
 
 export async function closeRedis(): Promise<void> {
