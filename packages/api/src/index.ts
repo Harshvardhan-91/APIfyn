@@ -101,26 +101,18 @@ const allowedOrigins = getAllowedOrigins();
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) {
         callback(null, true);
         return;
       }
 
-      // In development, be more permissive
-      if (process.env.NODE_ENV === "development") {
-        callback(null, true);
-        return;
-      }
-
-      // In production, strictly check against allowed origins
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         logger.warn(
-          `Blocked request from unauthorized origin: ${origin}. Allowed origins: ${allowedOrigins.join(", ")}`,
+          `CORS: blocked ${origin}. Allowed: ${allowedOrigins.join(", ")}`,
         );
-        callback(new Error("Not allowed by CORS"));
+        callback(null, false);
       }
     },
     credentials: true,
