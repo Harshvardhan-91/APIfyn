@@ -39,7 +39,13 @@ export function PublicNavbar() {
     <header className="fixed inset-x-0 top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/logo.png" alt="APIfyn" width={32} height={32} className="rounded-lg" />
+          <Image
+            src="/logo.png"
+            alt="APIfyn"
+            width={32}
+            height={32}
+            className="rounded-lg"
+          />
           <span className="text-base font-semibold text-gray-900">APIfyn</span>
         </Link>
 
@@ -58,10 +64,17 @@ export function PublicNavbar() {
         <div className="hidden items-center gap-2 md:flex">
           {user ? (
             <>
-              <Button variant="ghost" className="text-sm" onClick={() => router.push("/dashboard")}>
+              <Button
+                variant="ghost"
+                className="text-sm"
+                onClick={() => router.push("/dashboard")}
+              >
                 Dashboard
               </Button>
-              <Button className="text-sm" onClick={() => router.push("/dashboard")}>
+              <Button
+                className="text-sm"
+                onClick={() => router.push("/dashboard")}
+              >
                 Open App
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
@@ -105,7 +118,10 @@ export function PublicNavbar() {
             </Link>
           ))}
           {user ? (
-            <Button className="mt-3 w-full text-sm" onClick={() => router.push("/dashboard")}>
+            <Button
+              className="mt-3 w-full text-sm"
+              onClick={() => router.push("/dashboard")}
+            >
               Open App <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           ) : (

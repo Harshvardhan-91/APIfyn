@@ -274,10 +274,13 @@ export function DashboardPage() {
                               "Workflow activity"}
                           </p>
                           <p className="text-xs text-gray-400">
-                            {new Date(activity.timestamp).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {new Date(activity.timestamp).toLocaleTimeString(
+                              [],
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
                           </p>
                         </div>
                         <span

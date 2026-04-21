@@ -7,14 +7,41 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useFetch } from "@/hooks/use-fetch";
 import type { ApiResult, Workflow as WorkflowType } from "@/lib/api/types";
 import type { LucideIcon } from "lucide-react";
-import { Activity, ArrowUpRight, CheckCircle2, Crown, Sparkles, Star, Workflow, Zap } from "lucide-react";
+import {
+  Activity,
+  ArrowUpRight,
+  CheckCircle2,
+  Crown,
+  Sparkles,
+  Star,
+  Workflow,
+  Zap,
+} from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-const PLAN_BADGE: Record<string, { label: string; icon: LucideIcon; bg: string; text: string }> = {
-  starter: { label: "Free", icon: Zap, bg: "bg-gray-700", text: "text-gray-200" },
-  professional: { label: "Pro", icon: Crown, bg: "bg-amber-500", text: "text-white" },
-  enterprise: { label: "Enterprise", icon: Sparkles, bg: "bg-violet-600", text: "text-white" },
+const PLAN_BADGE: Record<
+  string,
+  { label: string; icon: LucideIcon; bg: string; text: string }
+> = {
+  starter: {
+    label: "Free",
+    icon: Zap,
+    bg: "bg-gray-700",
+    text: "text-gray-200",
+  },
+  professional: {
+    label: "Pro",
+    icon: Crown,
+    bg: "bg-amber-500",
+    text: "text-white",
+  },
+  enterprise: {
+    label: "Enterprise",
+    icon: Sparkles,
+    bg: "bg-violet-600",
+    text: "text-white",
+  },
 };
 
 export function ProfilePage() {
@@ -71,7 +98,11 @@ export function ProfilePage() {
               <p className="mt-0.5 text-sm text-gray-300">{user?.email}</p>
               {user?.createdAt ? (
                 <p className="mt-0.5 text-xs text-gray-400">
-                  Member since {new Date(user.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                  Member since{" "}
+                  {new Date(user.createdAt).toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </p>
               ) : null}
             </div>
@@ -166,7 +197,11 @@ function UsageBar({
       <div className="h-1.5 rounded-full bg-gray-200">
         <div
           className={`h-1.5 rounded-full transition-all ${
-            pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-amber-500" : "bg-emerald-500"
+            pct >= 100
+              ? "bg-red-500"
+              : pct >= 80
+                ? "bg-amber-500"
+                : "bg-emerald-500"
           }`}
           style={{ width: `${pct}%` }}
         />

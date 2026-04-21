@@ -43,7 +43,8 @@ const providers: ProviderConfig[] = [
   {
     id: "github",
     name: "GitHub",
-    description: "Trigger workflows from pushes, PRs, issues, and releases. Filter by branch, event type, and PR action.",
+    description:
+      "Trigger workflows from pushes, PRs, issues, and releases. Filter by branch, event type, and PR action.",
     icon: GitHubIcon,
     bg: "bg-[#24292f]",
     text: "text-white",
@@ -55,7 +56,8 @@ const providers: ProviderConfig[] = [
   {
     id: "slack",
     name: "Slack",
-    description: "Send formatted messages and alerts to any channel. Custom bot name, threads, and emoji support.",
+    description:
+      "Send formatted messages and alerts to any channel. Custom bot name, threads, and emoji support.",
     icon: SlackIcon,
     bg: "bg-[#4A154B]",
     text: "text-white",
@@ -67,7 +69,8 @@ const providers: ProviderConfig[] = [
   {
     id: "discord",
     name: "Discord",
-    description: "Post messages to channels via webhook URL. Custom bot name and avatar support.",
+    description:
+      "Post messages to channels via webhook URL. Custom bot name and avatar support.",
     icon: DiscordIcon,
     bg: "bg-[#5865F2]",
     text: "text-white",
@@ -78,7 +81,8 @@ const providers: ProviderConfig[] = [
   {
     id: "gmail",
     name: "Gmail",
-    description: "Send branded HTML emails with dynamic template variables. Professional formatting built-in.",
+    description:
+      "Send branded HTML emails with dynamic template variables. Professional formatting built-in.",
     icon: GmailIcon,
     bg: "bg-red-50",
     text: "text-red-600",
@@ -89,7 +93,8 @@ const providers: ProviderConfig[] = [
   {
     id: "notion",
     name: "Notion",
-    description: "Create pages and update databases. Add status badges, tags, and structured content.",
+    description:
+      "Create pages and update databases. Add status badges, tags, and structured content.",
     icon: NotionIcon,
     bg: "bg-black",
     text: "text-white",
@@ -100,7 +105,8 @@ const providers: ProviderConfig[] = [
   {
     id: "sheets",
     name: "Google Sheets",
-    description: "Read and write data to Google Spreadsheets. Append rows or overwrite existing data.",
+    description:
+      "Read and write data to Google Spreadsheets. Append rows or overwrite existing data.",
     icon: GoogleSheetsIcon,
     bg: "bg-green-50",
     text: "text-green-700",
@@ -111,7 +117,8 @@ const providers: ProviderConfig[] = [
   {
     id: "stripe",
     name: "Stripe",
-    description: "Listen for payments, subscriptions, refunds, and billing events in real time.",
+    description:
+      "Listen for payments, subscriptions, refunds, and billing events in real time.",
     icon: StripeIcon,
     bg: "bg-[#635BFF]",
     text: "text-white",
@@ -122,7 +129,8 @@ const providers: ProviderConfig[] = [
   {
     id: "typeform",
     name: "Typeform",
-    description: "Trigger workflows when new form responses arrive. Access all form fields as variables.",
+    description:
+      "Trigger workflows when new form responses arrive. Access all form fields as variables.",
     icon: TypeformIcon,
     bg: "bg-[#262627]",
     text: "text-white",
@@ -148,7 +156,11 @@ export function IntegrationsPage() {
         `/api/integrations/${provider}/auth`,
         { method: "POST", token: user.token },
       );
-      const popup = window.open(result.authUrl, "_blank", "width=600,height=700");
+      const popup = window.open(
+        result.authUrl,
+        "_blank",
+        "width=600,height=700",
+      );
       const poll = setInterval(() => {
         if (popup?.closed) {
           clearInterval(poll);
@@ -194,7 +206,9 @@ export function IntegrationsPage() {
               </h1>
             </div>
             <p className="text-sm text-gray-500">
-              Connect the services your workflows depend on. {providers.length} integrations supported{connectedCount > 0 ? `, ${connectedCount} connected` : ""}.
+              Connect the services your workflows depend on. {providers.length}{" "}
+              integrations supported
+              {connectedCount > 0 ? `, ${connectedCount} connected` : ""}.
             </p>
           </div>
           <button
@@ -202,7 +216,9 @@ export function IntegrationsPage() {
             className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-50 hover:text-gray-900"
             onClick={() => mutate()}
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`}
+            />
             Refresh
           </button>
         </div>
@@ -213,7 +229,8 @@ export function IntegrationsPage() {
             const isOAuth = provider.connectType === "oauth";
             const connected = Boolean(
               isOAuth &&
-                data?.integrations?.[provider.id as keyof IntegrationStatus]?.connected,
+                data?.integrations?.[provider.id as keyof IntegrationStatus]
+                  ?.connected,
             );
             const isActionLoading = loadingProvider === provider.id;
 
@@ -264,12 +281,16 @@ export function IntegrationsPage() {
                     {connected ? (
                       <>
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        <span className="text-xs font-medium text-emerald-700">Active</span>
+                        <span className="text-xs font-medium text-emerald-700">
+                          Active
+                        </span>
                       </>
                     ) : isOAuth ? (
                       <>
                         <AlertCircle className="h-3.5 w-3.5 text-gray-300" />
-                        <span className="text-xs text-gray-400">Not connected</span>
+                        <span className="text-xs text-gray-400">
+                          Not connected
+                        </span>
                       </>
                     ) : (
                       <>

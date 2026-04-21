@@ -56,7 +56,10 @@ function useInView(threshold = 0.15) {
 }
 
 /* ── animated counter ────────────────────────────────────────── */
-function AnimatedNumber({ target, suffix = "" }: { target: number; suffix?: string }) {
+function AnimatedNumber({
+  target,
+  suffix = "",
+}: { target: number; suffix?: string }) {
   const [count, setCount] = useState(0);
   const { ref, visible } = useInView(0.3);
   useEffect(() => {
@@ -87,9 +90,19 @@ const integrationLogos = [
   { icon: SlackIcon, label: "Slack", bg: "bg-[#4A154B]", text: "text-white" },
   { icon: GmailIcon, label: "Gmail", bg: "bg-red-50", text: "text-red-600" },
   { icon: NotionIcon, label: "Notion", bg: "bg-black", text: "text-white" },
-  { icon: GoogleSheetsIcon, label: "Sheets", bg: "bg-green-50", text: "text-green-700" },
+  {
+    icon: GoogleSheetsIcon,
+    label: "Sheets",
+    bg: "bg-green-50",
+    text: "text-green-700",
+  },
   { icon: StripeIcon, label: "Stripe", bg: "bg-[#635BFF]", text: "text-white" },
-  { icon: DiscordIcon, label: "Discord", bg: "bg-[#5865F2]", text: "text-white" },
+  {
+    icon: DiscordIcon,
+    label: "Discord",
+    bg: "bg-[#5865F2]",
+    text: "text-white",
+  },
 ];
 
 const features = [
@@ -167,25 +180,29 @@ const howItWorks = [
 const templates = [
   {
     title: "GitHub → Slack",
-    description: "Notify your team channel on every push, PR, or issue. Branch and event filtering included.",
+    description:
+      "Notify your team channel on every push, PR, or issue. Branch and event filtering included.",
     apps: ["github", "slack"],
     badge: "Most Popular",
   },
   {
     title: "GitHub → Gmail",
-    description: "Receive professional branded emails for each code change with commit details and links.",
+    description:
+      "Receive professional branded emails for each code change with commit details and links.",
     apps: ["github", "gmail"],
     badge: "New",
   },
   {
     title: "Stripe → Discord",
-    description: "Post payment alerts and subscription events to your Discord server automatically.",
+    description:
+      "Post payment alerts and subscription events to your Discord server automatically.",
     apps: ["stripe", "discord"],
     badge: null,
   },
   {
     title: "GitHub → Discord",
-    description: "Keep your open-source community updated with automated push and PR notifications.",
+    description:
+      "Keep your open-source community updated with automated push and PR notifications.",
     apps: ["github", "discord"],
     badge: null,
   },
@@ -200,10 +217,34 @@ const stats = [
 
 /* ── hero live demo steps ────────────────────────────────────── */
 const demoSteps = [
-  { icon: GitBranch, app: "github", label: "Push to main", detail: "3 commits · feat/auth-flow", status: "complete" as const },
-  { icon: Settings2, app: "github", label: "Filter: push events only", detail: "Branch: main", status: "complete" as const },
-  { icon: MessageSquare, app: "slack", label: "Slack → #engineering", detail: '"New push by {{sender.name}}"', status: "complete" as const },
-  { icon: Mail, app: "gmail", label: "Email summary sent", detail: "team@company.com · 240ms", status: "complete" as const },
+  {
+    icon: GitBranch,
+    app: "github",
+    label: "Push to main",
+    detail: "3 commits · feat/auth-flow",
+    status: "complete" as const,
+  },
+  {
+    icon: Settings2,
+    app: "github",
+    label: "Filter: push events only",
+    detail: "Branch: main",
+    status: "complete" as const,
+  },
+  {
+    icon: MessageSquare,
+    app: "slack",
+    label: "Slack → #engineering",
+    detail: '"New push by {{sender.name}}"',
+    status: "complete" as const,
+  },
+  {
+    icon: Mail,
+    app: "gmail",
+    label: "Email summary sent",
+    detail: "team@company.com · 240ms",
+    status: "complete" as const,
+  },
 ];
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -262,10 +303,14 @@ export function LandingPage() {
               </h1>
               <p className="mt-6 max-w-lg text-lg leading-relaxed text-gray-600">
                 Connect GitHub, Slack, Gmail, Discord, and more with a visual
-                workflow builder. Build reliable automations in minutes, not days.
+                workflow builder. Build reliable automations in minutes, not
+                days.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button className="h-12 px-6 text-base shadow-lg shadow-gray-900/10 transition-all hover:shadow-xl hover:shadow-gray-900/15" onClick={start}>
+                <Button
+                  className="h-12 px-6 text-base shadow-lg shadow-gray-900/10 transition-all hover:shadow-xl hover:shadow-gray-900/15"
+                  onClick={start}
+                >
                   Start Building Free
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -296,8 +341,12 @@ export function LandingPage() {
                   <div className="flex items-center gap-3">
                     <AppIcon app="github" />
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">GitHub → Slack + Gmail</p>
-                      <p className="text-xs text-gray-500">Live workflow execution</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        GitHub → Slack + Gmail
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Live workflow execution
+                      </p>
                     </div>
                   </div>
                   <span className="relative flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
@@ -325,29 +374,47 @@ export function LandingPage() {
                         >
                           <AppIcon app={step.app} size="sm" />
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium transition-colors duration-300 ${isActive ? "text-gray-900" : "text-gray-400"}`}>
+                            <p
+                              className={`text-sm font-medium transition-colors duration-300 ${isActive ? "text-gray-900" : "text-gray-400"}`}
+                            >
                               {step.label}
                             </p>
-                            <p className="truncate text-xs text-gray-500">{step.detail}</p>
+                            <p className="truncate text-xs text-gray-500">
+                              {step.detail}
+                            </p>
                           </div>
-                          <div className={`flex h-5 w-5 items-center justify-center rounded-full transition-all duration-500 ${
-                            isActive ? "bg-emerald-500 scale-100" : "bg-gray-200 scale-75"
-                          }`}>
-                            {isActive && <CheckCircle2 className="h-3 w-3 text-white" />}
+                          <div
+                            className={`flex h-5 w-5 items-center justify-center rounded-full transition-all duration-500 ${
+                              isActive
+                                ? "bg-emerald-500 scale-100"
+                                : "bg-gray-200 scale-75"
+                            }`}
+                          >
+                            {isActive && (
+                              <CheckCircle2 className="h-3 w-3 text-white" />
+                            )}
                           </div>
                         </div>
                         {i < demoSteps.length - 1 && (
-                          <div className={`ml-[1.875rem] h-4 border-l-2 transition-colors duration-500 ${
-                            i < activeDemoStep ? "border-emerald-300" : "border-dashed border-gray-200"
-                          }`} />
+                          <div
+                            className={`ml-[1.875rem] h-4 border-l-2 transition-colors duration-500 ${
+                              i < activeDemoStep
+                                ? "border-emerald-300"
+                                : "border-dashed border-gray-200"
+                            }`}
+                          />
                         )}
                       </div>
                     );
                   })}
                 </div>
-                <div className={`mt-4 flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-2.5 transition-all duration-500 ${
-                  activeDemoStep >= 3 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-                }`}>
+                <div
+                  className={`mt-4 flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-2.5 transition-all duration-500 ${
+                    activeDemoStep >= 3
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 translate-y-2"
+                  }`}
+                >
                   <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
                     <CheckCircle2 className="h-4 w-4" />
                     Workflow complete
@@ -367,7 +434,9 @@ export function LandingPage() {
       <section
         ref={integrations.ref}
         className={`border-y border-gray-100 bg-gray-50/50 py-14 transition-all duration-700 ${
-          integrations.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+          integrations.visible
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-6"
         }`}
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -399,16 +468,22 @@ export function LandingPage() {
       <section
         ref={statsSection.ref}
         className={`py-16 transition-all duration-700 ${
-          statsSection.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+          statsSection.visible
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-6"
         }`}
       >
         <div className="mx-auto grid max-w-4xl grid-cols-2 gap-8 px-4 sm:px-6 lg:grid-cols-4 lg:gap-12">
           {stats.map((stat) => (
             <div key={stat.label} className="text-center">
               <p className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-                {stat.display ?? <AnimatedNumber target={stat.value} suffix={stat.suffix} />}
+                {stat.display ?? (
+                  <AnimatedNumber target={stat.value} suffix={stat.suffix} />
+                )}
               </p>
-              <p className="mt-1.5 text-sm font-medium text-gray-500">{stat.label}</p>
+              <p className="mt-1.5 text-sm font-medium text-gray-500">
+                {stat.label}
+              </p>
             </div>
           ))}
         </div>
@@ -420,16 +495,22 @@ export function LandingPage() {
         ref={featuresSection.ref}
         className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8"
       >
-        <div className={`mb-16 max-w-2xl transition-all duration-700 ${
-          featuresSection.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-        }`}>
-          <p className="mb-3 text-sm font-semibold tracking-wide text-blue-600 uppercase">Features</p>
+        <div
+          className={`mb-16 max-w-2xl transition-all duration-700 ${
+            featuresSection.visible
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-8"
+          }`}
+        >
+          <p className="mb-3 text-sm font-semibold tracking-wide text-blue-600 uppercase">
+            Features
+          </p>
           <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
             Everything you need for API automation
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-gray-600">
-            From webhook triggers to multi-channel notifications, APIfyn handles the
-            full automation pipeline so you can focus on building.
+            From webhook triggers to multi-channel notifications, APIfyn handles
+            the full automation pipeline so you can focus on building.
           </p>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -437,35 +518,51 @@ export function LandingPage() {
             <div
               key={feature.title}
               className={`group rounded-2xl border border-gray-100 bg-white p-6 transition-all duration-500 hover:shadow-lg hover:-translate-y-1 ${feature.border} ${
-                featuresSection.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+                featuresSection.visible
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-8"
               }`}
-              style={{ transitionDelay: featuresSection.visible ? `${i * 80}ms` : "0ms" }}
+              style={{
+                transitionDelay: featuresSection.visible
+                  ? `${i * 80}ms`
+                  : "0ms",
+              }}
             >
-              <div className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl ${feature.bg} transition-transform duration-300 group-hover:scale-110`}>
+              <div
+                className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl ${feature.bg} transition-transform duration-300 group-hover:scale-110`}
+              >
                 <feature.icon className={`h-5 w-5 ${feature.color}`} />
               </div>
-              <h3 className="text-base font-semibold text-gray-900">{feature.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-gray-500">{feature.text}</p>
+              <h3 className="text-base font-semibold text-gray-900">
+                {feature.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                {feature.text}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── How it Works ─────────────────────────────────────── */}
-      <section
-        ref={howSection.ref}
-        className="bg-gray-50/80 py-24"
-      >
+      <section ref={howSection.ref} className="bg-gray-50/80 py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className={`mb-16 max-w-2xl transition-all duration-700 ${
-            howSection.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}>
-            <p className="mb-3 text-sm font-semibold tracking-wide text-blue-600 uppercase">How it works</p>
+          <div
+            className={`mb-16 max-w-2xl transition-all duration-700 ${
+              howSection.visible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-8"
+            }`}
+          >
+            <p className="mb-3 text-sm font-semibold tracking-wide text-blue-600 uppercase">
+              How it works
+            </p>
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
               Three steps to automation
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-gray-600">
-              Go from zero to a live workflow in under two minutes. No code required.
+              Go from zero to a live workflow in under two minutes. No code
+              required.
             </p>
           </div>
           <div className="grid gap-8 lg:grid-cols-3">
@@ -473,9 +570,13 @@ export function LandingPage() {
               <div
                 key={item.step}
                 className={`group relative rounded-2xl border border-gray-100 bg-white p-8 transition-all duration-500 hover:shadow-lg hover:-translate-y-1 ${
-                  howSection.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+                  howSection.visible
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-8"
                 }`}
-                style={{ transitionDelay: howSection.visible ? `${i * 120}ms` : "0ms" }}
+                style={{
+                  transitionDelay: howSection.visible ? `${i * 120}ms` : "0ms",
+                }}
               >
                 <span className="absolute -top-4 left-6 rounded-full bg-gray-900 px-3 py-1 text-xs font-bold text-white">
                   {item.step}
@@ -483,8 +584,12 @@ export function LandingPage() {
                 <div className="mb-5 mt-2 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 transition-transform duration-300 group-hover:scale-110">
                   <item.icon className="h-6 w-6 text-blue-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-gray-500">{item.text}</p>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                  {item.text}
+                </p>
               </div>
             ))}
           </div>
@@ -492,21 +597,24 @@ export function LandingPage() {
       </section>
 
       {/* ── Templates ────────────────────────────────────────── */}
-      <section
-        id="templates"
-        ref={templatesSection.ref}
-        className="py-24"
-      >
+      <section id="templates" ref={templatesSection.ref} className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className={`mb-16 max-w-2xl transition-all duration-700 ${
-            templatesSection.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}>
-            <p className="mb-3 text-sm font-semibold tracking-wide text-blue-600 uppercase">Templates</p>
+          <div
+            className={`mb-16 max-w-2xl transition-all duration-700 ${
+              templatesSection.visible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-8"
+            }`}
+          >
+            <p className="mb-3 text-sm font-semibold tracking-wide text-blue-600 uppercase">
+              Templates
+            </p>
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
               Start from a template
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-gray-600">
-              Pre-built workflows to get you running in seconds. Clone, customize, and go live.
+              Pre-built workflows to get you running in seconds. Clone,
+              customize, and go live.
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -514,16 +622,24 @@ export function LandingPage() {
               <div
                 key={template.title}
                 className={`group relative rounded-2xl border border-gray-100 bg-white p-6 transition-all duration-500 hover:shadow-lg hover:-translate-y-1 hover:border-gray-200 ${
-                  templatesSection.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+                  templatesSection.visible
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-8"
                 }`}
-                style={{ transitionDelay: templatesSection.visible ? `${i * 80}ms` : "0ms" }}
+                style={{
+                  transitionDelay: templatesSection.visible
+                    ? `${i * 80}ms`
+                    : "0ms",
+                }}
               >
                 {template.badge && (
-                  <span className={`absolute -top-2.5 right-4 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                    template.badge === "New"
-                      ? "bg-blue-600 text-white"
-                      : "bg-amber-100 text-amber-700"
-                  }`}>
+                  <span
+                    className={`absolute -top-2.5 right-4 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                      template.badge === "New"
+                        ? "bg-blue-600 text-white"
+                        : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
                     {template.badge}
                   </span>
                 )}
@@ -532,8 +648,12 @@ export function LandingPage() {
                     <AppIcon key={app} app={app} />
                   ))}
                 </div>
-                <h3 className="text-base font-semibold text-gray-900">{template.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-gray-500">{template.description}</p>
+                <h3 className="text-base font-semibold text-gray-900">
+                  {template.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                  {template.description}
+                </p>
                 <button
                   type="button"
                   className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-medium text-gray-700 transition-all hover:bg-gray-100 hover:border-gray-300 group-hover:bg-gray-900 group-hover:text-white group-hover:border-gray-900"
@@ -552,7 +672,9 @@ export function LandingPage() {
       <section
         ref={ctaSection.ref}
         className={`py-24 transition-all duration-700 ${
-          ctaSection.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+          ctaSection.visible
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-6"
         }`}
       >
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
@@ -578,7 +700,9 @@ export function LandingPage() {
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="mt-4 text-xs text-gray-500">No credit card · Free forever plan · Setup in 2 minutes</p>
+              <p className="mt-4 text-xs text-gray-500">
+                No credit card · Free forever plan · Setup in 2 minutes
+              </p>
             </div>
           </div>
         </div>
@@ -597,12 +721,26 @@ export function LandingPage() {
                 href="/admin"
                 className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-gray-300/60 transition-colors hover:bg-gray-400"
                 aria-label="Admin"
-              />
+              >
+                <span className="sr-only">Admin</span>
+              </a>
             </div>
             <div className="flex gap-8 text-sm text-gray-500">
-              <a href="/privacy-policy" className="transition hover:text-gray-900">Privacy</a>
-              <a href="/terms-and-conditions" className="transition hover:text-gray-900">Terms</a>
-              <a href="/contact-us" className="transition hover:text-gray-900">Contact</a>
+              <a
+                href="/privacy-policy"
+                className="transition hover:text-gray-900"
+              >
+                Privacy
+              </a>
+              <a
+                href="/terms-and-conditions"
+                className="transition hover:text-gray-900"
+              >
+                Terms
+              </a>
+              <a href="/contact-us" className="transition hover:text-gray-900">
+                Contact
+              </a>
             </div>
           </div>
         </div>

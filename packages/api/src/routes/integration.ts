@@ -47,6 +47,21 @@ router.get(
               .map((i: Integration) => i.config) || [],
           loading: false,
         },
+        google: {
+          connected: userIntegrations.some(
+            (i: Integration) => i.type === "GOOGLE_SHEETS" && (i.accessToken || i.refreshToken),
+          ),
+          loading: false,
+        },
+        notion: {
+          connected: userIntegrations.some(
+            (i: Integration) => i.type === "NOTION" && i.accessToken,
+          ),
+          config:
+            userIntegrations.find((i: Integration) => i.type === "NOTION")
+              ?.config || null,
+          loading: false,
+        },
       };
 
       res.json({
@@ -286,6 +301,122 @@ router.get(
   }),
 );
 
+// ─── Google OAuth (Sheets + Calendar) ─────────────────────────
+
+router.post(
+  "/google/auth",
+  authenticateToken,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const authUrl = OAuthService.generateGoogleAuthUrl(req.user.id);
+      res.json({ success: true, authUrl });
+    } catch (error) {
+      logger.error("Google auth error:", error);
+      res.status(500).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to initiate Google authentication",
+      });
+    }
+  }),
+);
+
+router.get(
+  "/google/callback",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { code, state } = req.query;
+
+    if (!code || !state) {
+      return res.status(400).json({ success: false, message: "Missing code or state" });
+    }
+
+    try {
+      const [userId] = (state as string).split("_");
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) throw new Error("User not found");
+
+      const tokens = await OAuthService.exchangeGoogleCode(code as string);
+      await OAuthService.saveGoogleIntegration(user.id, tokens);
+
+      return res.type("html").send(
+        `<html><body><script>
+          try { if (window.opener) window.opener.postMessage({ type: 'google_auth_success' }, '*'); } catch(e) {}
+          window.close();
+        </script><p>Connected! You can close this window.</p></body></html>`,
+      );
+    } catch (error) {
+      logger.error("Google OAuth callback error:", error);
+      const msg = error instanceof Error ? error.message.replace(/'/g, "\\'") : "Unknown error";
+      return res.type("html").send(
+        `<html><body><script>
+          try { if (window.opener) window.opener.postMessage({ type: 'google_auth_error', error: '${msg}' }, '*'); } catch(e) {}
+          window.close();
+        </script><p>Error: ${msg}. You can close this window.</p></body></html>`,
+      );
+    }
+  }),
+);
+
+// ─── Notion OAuth ─────────────────────────────────────────────
+
+router.post(
+  "/notion/auth",
+  authenticateToken,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const authUrl = OAuthService.generateNotionAuthUrl(req.user.id);
+      res.json({ success: true, authUrl });
+    } catch (error) {
+      logger.error("Notion auth error:", error);
+      res.status(500).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to initiate Notion authentication",
+      });
+    }
+  }),
+);
+
+router.get(
+  "/notion/callback",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { code, state } = req.query;
+
+    if (!code || !state) {
+      return res.status(400).json({ success: false, message: "Missing code or state" });
+    }
+
+    try {
+      const [userId] = (state as string).split("_");
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) throw new Error("User not found");
+
+      const tokens = await OAuthService.exchangeNotionCode(code as string);
+      await OAuthService.saveNotionIntegration(user.id, tokens);
+
+      return res.type("html").send(
+        `<html><body><script>
+          try { if (window.opener) window.opener.postMessage({ type: 'notion_auth_success' }, '*'); } catch(e) {}
+          window.close();
+        </script><p>Connected! You can close this window.</p></body></html>`,
+      );
+    } catch (error) {
+      logger.error("Notion OAuth callback error:", error);
+      const msg = error instanceof Error ? error.message.replace(/'/g, "\\'") : "Unknown error";
+      return res.type("html").send(
+        `<html><body><script>
+          try { if (window.opener) window.opener.postMessage({ type: 'notion_auth_error', error: '${msg}' }, '*'); } catch(e) {}
+          window.close();
+        </script><p>Error: ${msg}. You can close this window.</p></body></html>`,
+      );
+    }
+  }),
+);
+
 // Disconnect integration
 router.delete(
   "/:provider/disconnect",
@@ -295,9 +426,11 @@ router.delete(
     const { provider } = req.params;
 
     try {
-      const integrationTypes = {
+      const integrationTypes: Record<string, string> = {
         github: "GITHUB",
         slack: "SLACK",
+        google: "GOOGLE_SHEETS",
+        notion: "NOTION",
       };
 
       const integrationType =

@@ -119,7 +119,9 @@ export function WorkflowsPage() {
             </p>
           </div>
           <Button
-            onClick={() => router.push(atWorkflowLimit ? "/pricing" : "/workflows/create")}
+            onClick={() =>
+              router.push(atWorkflowLimit ? "/pricing" : "/workflows/create")
+            }
             variant={atWorkflowLimit ? "secondary" : "primary"}
           >
             {atWorkflowLimit ? (
@@ -140,8 +142,8 @@ export function WorkflowsPage() {
           <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
             <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
             <p className="text-sm text-amber-800">
-              You&apos;ve reached the {plan.workflowsLimit}-workflow limit on the{" "}
-              <span className="font-semibold">{plan.name}</span> plan.{" "}
+              You&apos;ve reached the {plan.workflowsLimit}-workflow limit on
+              the <span className="font-semibold">{plan.name}</span> plan.{" "}
               <button
                 type="button"
                 className="font-semibold underline hover:no-underline"

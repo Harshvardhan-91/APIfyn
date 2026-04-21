@@ -80,4 +80,6 @@ export type Workflow = {
 export type IntegrationStatus = {
   github: { connected: boolean; user: unknown; loading?: boolean };
   slack: { connected: boolean; workspaces: unknown[]; loading?: boolean };
+  google?: { connected: boolean; loading?: boolean };
+  notion?: { connected: boolean; config?: unknown; loading?: boolean };
 };

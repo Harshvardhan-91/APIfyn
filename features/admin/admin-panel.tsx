@@ -153,9 +153,12 @@ function AdminDashboard({
         apiFetch<{
           users: UserRow[];
           pagination: { total: number };
-        }>(`/api/admin/users?page=${page}&limit=50&search=${encodeURIComponent(search)}`, {
-          token,
-        }),
+        }>(
+          `/api/admin/users?page=${page}&limit=50&search=${encodeURIComponent(search)}`,
+          {
+            token,
+          },
+        ),
       ]);
       setStats(statsData.stats);
       setUsers(usersData.users);
@@ -202,16 +205,48 @@ function AdminDashboard({
         {stats ? (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {[
-              { label: "Users", value: stats.totalUsers, icon: Users, color: "bg-blue-50 text-blue-600" },
-              { label: "Workflows", value: stats.totalWorkflows, icon: Workflow, color: "bg-purple-50 text-purple-600" },
-              { label: "Executions", value: stats.totalExecutions, icon: Activity, color: "bg-emerald-50 text-emerald-600" },
-              { label: "Integrations", value: stats.totalIntegrations, icon: Link2, color: "bg-amber-50 text-amber-600" },
-              { label: "New (7d)", value: stats.recentUsers, icon: Sparkles, color: "bg-pink-50 text-pink-600" },
-              { label: "Paid Subs", value: stats.activeSubscriptions, icon: Crown, color: "bg-violet-50 text-violet-600" },
+              {
+                label: "Users",
+                value: stats.totalUsers,
+                icon: Users,
+                color: "bg-blue-50 text-blue-600",
+              },
+              {
+                label: "Workflows",
+                value: stats.totalWorkflows,
+                icon: Workflow,
+                color: "bg-purple-50 text-purple-600",
+              },
+              {
+                label: "Executions",
+                value: stats.totalExecutions,
+                icon: Activity,
+                color: "bg-emerald-50 text-emerald-600",
+              },
+              {
+                label: "Integrations",
+                value: stats.totalIntegrations,
+                icon: Link2,
+                color: "bg-amber-50 text-amber-600",
+              },
+              {
+                label: "New (7d)",
+                value: stats.recentUsers,
+                icon: Sparkles,
+                color: "bg-pink-50 text-pink-600",
+              },
+              {
+                label: "Paid Subs",
+                value: stats.activeSubscriptions,
+                icon: Crown,
+                color: "bg-violet-50 text-violet-600",
+              },
             ].map((s) => (
               <Card key={s.label}>
                 <CardContent className="flex items-center gap-3 py-4">
-                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${s.color}`}>
+                  <span
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${s.color}`}
+                  >
                     <s.icon className="h-5 w-5" />
                   </span>
                   <div>
@@ -259,9 +294,15 @@ function AdminDashboard({
                     <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
                       <th className="pb-3 font-medium">User</th>
                       <th className="pb-3 font-medium">Plan</th>
-                      <th className="pb-3 font-medium text-center">Workflows</th>
-                      <th className="pb-3 font-medium text-center">Executions</th>
-                      <th className="pb-3 font-medium text-center">API Calls</th>
+                      <th className="pb-3 font-medium text-center">
+                        Workflows
+                      </th>
+                      <th className="pb-3 font-medium text-center">
+                        Executions
+                      </th>
+                      <th className="pb-3 font-medium text-center">
+                        API Calls
+                      </th>
                       <th className="pb-3 font-medium">Joined</th>
                       <th className="pb-3 font-medium">Last Login</th>
                       <th className="pb-3" />
@@ -288,14 +329,18 @@ function AdminDashboard({
                                 />
                               ) : (
                                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">
-                                  {(u.displayName ?? u.email).charAt(0).toUpperCase()}
+                                  {(u.displayName ?? u.email)
+                                    .charAt(0)
+                                    .toUpperCase()}
                                 </span>
                               )}
                               <div>
                                 <p className="font-medium text-gray-900">
                                   {u.displayName ?? "—"}
                                 </p>
-                                <p className="text-xs text-gray-400">{u.email}</p>
+                                <p className="text-xs text-gray-400">
+                                  {u.email}
+                                </p>
                               </div>
                             </div>
                           </td>

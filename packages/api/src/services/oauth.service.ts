@@ -222,6 +222,185 @@ export class OAuthService {
     }
   }
 
+  // ─── Google OAuth (Sheets / Calendar) ───────────────────────
+
+  static generateGoogleAuthUrl(userId: string): string {
+    const clientId = process.env.GOOGLE_API_CLIENT_ID;
+    if (!clientId) throw new Error("Google API OAuth not configured");
+
+    const redirectUri =
+      process.env.GOOGLE_API_REDIRECT_URI ??
+      `${process.env.BASE_URL}/api/integrations/google/callback`;
+    const state = `${userId}_${Date.now()}`;
+    const scope = [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/calendar.readonly",
+    ].join(" ");
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope,
+      access_type: "offline",
+      prompt: "consent",
+      state,
+    });
+
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  }
+
+  static async exchangeGoogleCode(
+    code: string,
+  ): Promise<{ access_token: string; refresh_token: string; expires_in: number }> {
+    const redirectUri =
+      process.env.GOOGLE_API_REDIRECT_URI ??
+      `${process.env.BASE_URL}/api/integrations/google/callback`;
+
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_API_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_API_CLIENT_SECRET!,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: redirectUri,
+      }),
+    });
+
+    const data = (await res.json()) as {
+      access_token?: string;
+      refresh_token?: string;
+      expires_in?: number;
+      error?: string;
+      error_description?: string;
+    };
+
+    if (data.error || !data.access_token) {
+      throw new Error(data.error_description ?? data.error ?? "Token exchange failed");
+    }
+
+    return {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token ?? "",
+      expires_in: data.expires_in ?? 3600,
+    };
+  }
+
+  static async saveGoogleIntegration(
+    userId: string,
+    tokens: { access_token: string; refresh_token: string; expires_in: number },
+  ) {
+    const integrationData = {
+      name: "Google (Sheets & Calendar)",
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      tokenExpiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+      config: { scope: "spreadsheets,calendar" },
+    };
+
+    const existing = await prisma.integration.findFirst({
+      where: { userId, type: "GOOGLE_SHEETS" },
+    });
+
+    if (existing) {
+      return await prisma.integration.update({
+        where: { id: existing.id },
+        data: integrationData,
+      });
+    }
+
+    return await prisma.integration.create({
+      data: { userId, type: "GOOGLE_SHEETS", ...integrationData },
+    });
+  }
+
+  // ─── Notion OAuth ─────────────────────────────────────────
+
+  static generateNotionAuthUrl(userId: string): string {
+    const clientId = process.env.NOTION_CLIENT_ID;
+    if (!clientId) throw new Error("Notion OAuth not configured");
+
+    const redirectUri =
+      process.env.NOTION_REDIRECT_URI ??
+      `${process.env.BASE_URL}/api/integrations/notion/callback`;
+    const state = `${userId}_${Date.now()}`;
+
+    return `https://api.notion.com/v1/oauth/authorize?client_id=${clientId}&response_type=code&owner=user&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+  }
+
+  static async exchangeNotionCode(
+    code: string,
+  ): Promise<{ access_token: string; workspace_name: string; workspace_id: string }> {
+    const redirectUri =
+      process.env.NOTION_REDIRECT_URI ??
+      `${process.env.BASE_URL}/api/integrations/notion/callback`;
+    const encoded = Buffer.from(
+      `${process.env.NOTION_CLIENT_ID}:${process.env.NOTION_CLIENT_SECRET}`,
+    ).toString("base64");
+
+    const res = await fetch("https://api.notion.com/v1/oauth/token", {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${encoded}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+      }),
+    });
+
+    const data = (await res.json()) as {
+      access_token?: string;
+      workspace_name?: string;
+      workspace_id?: string;
+      error?: string;
+      message?: string;
+    };
+
+    if (data.error || !data.access_token) {
+      throw new Error(data.message ?? data.error ?? "Notion token exchange failed");
+    }
+
+    return {
+      access_token: data.access_token,
+      workspace_name: data.workspace_name ?? "Notion Workspace",
+      workspace_id: data.workspace_id ?? "",
+    };
+  }
+
+  static async saveNotionIntegration(
+    userId: string,
+    tokens: { access_token: string; workspace_name: string; workspace_id: string },
+  ) {
+    const integrationData = {
+      name: `${tokens.workspace_name} (Notion)`,
+      accessToken: tokens.access_token,
+      config: {
+        workspace_name: tokens.workspace_name,
+        workspace_id: tokens.workspace_id,
+      },
+    };
+
+    const existing = await prisma.integration.findFirst({
+      where: { userId, type: "NOTION" },
+    });
+
+    if (existing) {
+      return await prisma.integration.update({
+        where: { id: existing.id },
+        data: integrationData,
+      });
+    }
+
+    return await prisma.integration.create({
+      data: { userId, type: "NOTION", ...integrationData },
+    });
+  }
+
   // Get repositories from GitHub
   static async getGitHubRepositories(accessToken: string) {
     const reposResponse = await fetch(

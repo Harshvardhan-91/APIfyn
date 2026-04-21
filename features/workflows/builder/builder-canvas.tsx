@@ -190,8 +190,8 @@ export function BuilderCanvas({
                 title="Connect to next block"
               />
               <div className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-3">
                     <span
                       className={cn(
                         "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-black/5",
@@ -214,7 +214,7 @@ export function BuilderCanvas({
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-0.5">
+                  <div className="flex shrink-0 gap-0.5">
                     <button
                       type="button"
                       className="rounded-lg p-1.5 transition hover:bg-gray-100"

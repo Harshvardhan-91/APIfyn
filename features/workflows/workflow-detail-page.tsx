@@ -56,7 +56,9 @@ export function WorkflowDetailPage() {
   const { user } = useAuth();
   const workflowId = params.id;
   const [message, setMessage] = useState<string>();
-  const [messageType, setMessageType] = useState<"info" | "success" | "error">("info");
+  const [messageType, setMessageType] = useState<"info" | "success" | "error">(
+    "info",
+  );
   const [testing, setTesting] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -98,7 +100,9 @@ export function WorkflowDetailPage() {
         await mutate();
         if (attempts >= 10) {
           clearInterval(poll);
-          setMessage("Test triggered successfully. Execution may still be processing.");
+          setMessage(
+            "Test triggered successfully. Execution may still be processing.",
+          );
           setMessageType("success");
           setTesting(false);
         }
@@ -119,7 +123,8 @@ export function WorkflowDetailPage() {
   }
 
   async function deleteWorkflow() {
-    if (!user?.token || deleting || !window.confirm("Delete this workflow?")) return;
+    if (!user?.token || deleting || !window.confirm("Delete this workflow?"))
+      return;
     setDeleting(true);
     try {
       await apiFetch(`/api/workflow/${workflowId}`, {
@@ -238,7 +243,11 @@ export function WorkflowDetailPage() {
               )}
               {workflow.isActive ? "Pause" : "Activate"}
             </Button>
-            <Button variant="secondary" onClick={testWorkflow} disabled={testing}>
+            <Button
+              variant="secondary"
+              onClick={testWorkflow}
+              disabled={testing}
+            >
               {testing ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               ) : (
@@ -253,7 +262,11 @@ export function WorkflowDetailPage() {
               <Edit className="h-4 w-4" />
               Edit
             </Button>
-            <Button variant="danger" onClick={deleteWorkflow} disabled={deleting}>
+            <Button
+              variant="danger"
+              onClick={deleteWorkflow}
+              disabled={deleting}
+            >
               {deleting ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               ) : (

@@ -64,6 +64,99 @@ router.post(
   }),
 );
 
+// Stripe webhook route for workflow triggers
+router.post(
+  "/stripe/:workflowId",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { workflowId } = req.params;
+
+    if (!workflowId) {
+      return res.status(400).json({ error: "Workflow ID is required" });
+    }
+
+    const sig = req.headers["stripe-signature"] as string | undefined;
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (webhookSecret && sig) {
+      try {
+        const crypto = await import("node:crypto");
+        const parts = sig.split(",").reduce(
+          (acc, part) => {
+            const [key, val] = part.split("=");
+            acc[key] = val;
+            return acc;
+          },
+          {} as Record<string, string>,
+        );
+        const signedPayload = `${parts.t}.${JSON.stringify(req.body)}`;
+        const expected = crypto
+          .createHmac("sha256", webhookSecret)
+          .update(signedPayload)
+          .digest("hex");
+        if (parts.v1 !== expected) {
+          logger.warn(`Invalid Stripe signature for workflow ${workflowId}`);
+        }
+      } catch {
+        logger.warn("Stripe signature verification skipped");
+      }
+    }
+
+    try {
+      const executionId = await WebhookService.enqueueWorkflow(
+        workflowId,
+        "stripe-trigger",
+        req.body,
+      );
+
+      return res.status(202).json({
+        success: true,
+        message: "Stripe webhook accepted",
+        executionId,
+      });
+    } catch (error) {
+      logger.error(`Stripe webhook error for ${workflowId}:`, error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to process Stripe webhook",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }),
+);
+
+// Typeform webhook route
+router.post(
+  "/typeform/:workflowId",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { workflowId } = req.params;
+
+    if (!workflowId) {
+      return res.status(400).json({ error: "Workflow ID is required" });
+    }
+
+    try {
+      const executionId = await WebhookService.enqueueWorkflow(
+        workflowId,
+        "typeform-trigger",
+        req.body,
+      );
+
+      return res.status(202).json({
+        success: true,
+        message: "Typeform webhook accepted",
+        executionId,
+      });
+    } catch (error) {
+      logger.error(`Typeform webhook error for ${workflowId}:`, error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to process Typeform webhook",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }),
+);
+
 router.post(
   "/inbound/:workflowId",
   asyncHandler(async (req: Request, res: Response) => {

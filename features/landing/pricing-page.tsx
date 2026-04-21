@@ -1,10 +1,10 @@
 "use client";
 
 import { PublicNavbar } from "@/components/layout/public-navbar";
+import { useAuth } from "@/components/providers/auth-provider";
 import { usePayment } from "@/components/providers/payment-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useAuth } from "@/components/providers/auth-provider";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";

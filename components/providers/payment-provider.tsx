@@ -57,7 +57,9 @@ export function usePayment() {
 
 declare global {
   interface Window {
-    Razorpay: new (options: Record<string, unknown>) => {
+    Razorpay: new (
+      options: Record<string, unknown>,
+    ) => {
       open: () => void;
       on: (event: string, cb: () => void) => void;
     };
@@ -172,9 +174,7 @@ export function PaymentProvider({ children }: { children: ReactNode }) {
       });
     } catch (paymentError) {
       const msg =
-        paymentError instanceof Error
-          ? paymentError.message
-          : "Payment failed";
+        paymentError instanceof Error ? paymentError.message : "Payment failed";
       if (msg !== "Payment cancelled") {
         setError(msg);
       }

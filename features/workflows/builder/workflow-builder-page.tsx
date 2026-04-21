@@ -181,7 +181,9 @@ export function WorkflowBuilderPage() {
       const { type } = event.data ?? {};
       if (
         type === "github_auth_success" ||
-        type === "slack_auth_success"
+        type === "slack_auth_success" ||
+        type === "google_auth_success" ||
+        type === "notion_auth_success"
       ) {
         loadIntegrations().catch(() => undefined);
       }
@@ -190,7 +192,7 @@ export function WorkflowBuilderPage() {
     return () => window.removeEventListener("message", onMessage);
   }, [loadIntegrations]);
 
-  async function authorize(provider: "github" | "slack") {
+  async function authorize(provider: "github" | "slack" | "google" | "notion") {
     if (!user?.token) return;
     const data = await apiFetch<ApiResult<{ authUrl: string }>>(
       `/api/integrations/${provider}/auth`,
@@ -254,7 +256,8 @@ export function WorkflowBuilderPage() {
 
       router.push("/workflows");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to save workflow";
+      const msg =
+        err instanceof Error ? err.message : "Failed to save workflow";
       if (msg.includes("workflow limit") || msg.includes("Upgrade")) {
         setMessage(msg);
       } else {

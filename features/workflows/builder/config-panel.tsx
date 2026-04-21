@@ -25,7 +25,7 @@ type ConfigPanelProps = {
   channels: Array<{ id: string; name: string; is_private?: boolean }>;
   workflowId?: string;
   onClose: () => void;
-  onAuthorize: (provider: "github" | "slack") => void;
+  onAuthorize: (provider: "github" | "slack" | "google" | "notion") => void;
   onUpdate: (block: BuilderBlock) => void;
 };
 
@@ -59,7 +59,8 @@ function SearchableSelect({
     if (!query) return options;
     const q = query.toLowerCase();
     return options.filter(
-      (o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q),
+      (o) =>
+        o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q),
     );
   }, [options, query]);
 
@@ -67,7 +68,10 @@ function SearchableSelect({
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
         setQuery("");
       }
@@ -92,7 +96,9 @@ function SearchableSelect({
           <span className={selectedLabel ? "text-gray-900" : "text-gray-400"}>
             {selectedLabel ?? placeholder}
           </span>
-          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronDown
+            className={`h-4 w-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          />
         </button>
         {open && (
           <div className="absolute z-50 mt-1.5 w-full rounded-xl border border-gray-200 bg-white shadow-lg">
@@ -127,7 +133,9 @@ function SearchableSelect({
                     key={opt.value}
                     type="button"
                     className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition hover:bg-gray-50 ${
-                      opt.value === value ? "bg-gray-50 font-medium text-gray-900" : "text-gray-700"
+                      opt.value === value
+                        ? "bg-gray-50 font-medium text-gray-900"
+                        : "text-gray-700"
                     }`}
                     onClick={() => {
                       onChange(opt.value);
@@ -138,7 +146,9 @@ function SearchableSelect({
                     <span className="truncate">{opt.label}</span>
                     <span className="ml-2 flex items-center gap-1.5">
                       {opt.suffix && (
-                        <span className="text-[10px] text-gray-400">{opt.suffix}</span>
+                        <span className="text-[10px] text-gray-400">
+                          {opt.suffix}
+                        </span>
                       )}
                       {opt.value === value && (
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
@@ -155,9 +165,15 @@ function SearchableSelect({
   );
 }
 
-function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+function Label({
+  children,
+  htmlFor,
+}: { children: React.ReactNode; htmlFor?: string }) {
   return (
-    <label className="mb-1.5 block text-xs font-medium text-gray-600" htmlFor={htmlFor}>
+    <label
+      className="mb-1.5 block text-xs font-medium text-gray-600"
+      htmlFor={htmlFor}
+    >
       {children}
     </label>
   );
@@ -186,7 +202,9 @@ function WebhookUrlDisplay({ url }: { url: string }) {
           <Copy className="h-4 w-4 text-gray-500" />
         </button>
       </div>
-      <Hint>Configure this URL in your external service to receive events.</Hint>
+      <Hint>
+        Configure this URL in your external service to receive events.
+      </Hint>
     </div>
   );
 }
@@ -208,7 +226,10 @@ function CheckboxGroup({
       <Label>{label}</Label>
       <div className="space-y-1.5 rounded-xl border border-gray-200 bg-white p-3">
         {options.map((opt) => (
-          <label key={opt.value} className="flex items-start gap-2 cursor-pointer group">
+          <label
+            key={opt.value}
+            className="flex items-start gap-2 cursor-pointer group"
+          >
             <input
               type="checkbox"
               className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-gray-900 focus:ring-gray-300"
@@ -223,7 +244,9 @@ function CheckboxGroup({
                 {opt.label}
               </span>
               {opt.desc && (
-                <span className="ml-1 text-[10px] text-gray-400">{opt.desc}</span>
+                <span className="ml-1 text-[10px] text-gray-400">
+                  {opt.desc}
+                </span>
               )}
             </div>
           </label>
@@ -277,16 +300,6 @@ const TRIGGER_VARIABLES: Record<string, VarGroup> = {
       { name: "answers", desc: "All answers as JSON" },
     ],
   },
-  "gmail-trigger": {
-    source: "Gmail Received",
-    description: "Variables from incoming emails",
-    vars: [
-      { name: "from", desc: "Sender email address" },
-      { name: "subject", desc: "Email subject line" },
-      { name: "body", desc: "Plain-text email body" },
-      { name: "date", desc: "Date received" },
-    ],
-  },
   "stripe-trigger": {
     source: "Stripe Payment",
     description: "Variables from Stripe webhook events",
@@ -304,18 +317,10 @@ const TRIGGER_VARIABLES: Record<string, VarGroup> = {
     description: "Variables from inbound webhook payload",
     vars: [
       { name: "payload", desc: "Full JSON payload" },
-      { name: "payload.field_name", desc: "Access nested fields via dot notation" },
-    ],
-  },
-  "calendar-trigger": {
-    source: "Calendar Event",
-    description: "Variables from Google Calendar events",
-    vars: [
-      { name: "event_title", desc: "Calendar event title" },
-      { name: "event_start", desc: "Start date/time" },
-      { name: "event_end", desc: "End date/time" },
-      { name: "event_description", desc: "Event description" },
-      { name: "organizer", desc: "Organizer email" },
+      {
+        name: "payload.field_name",
+        desc: "Access nested fields via dot notation",
+      },
     ],
   },
 };
@@ -355,9 +360,15 @@ function AvailableVariables({ triggerIds }: { triggerIds: string[] }) {
         className="flex w-full items-center gap-2 px-4 py-3 text-left text-xs font-medium text-gray-600 hover:text-gray-900 transition"
         onClick={() => setExpanded((v) => !v)}
       >
-        {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        {expanded ? (
+          <ChevronDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5" />
+        )}
         Available Variables
-        <span className="ml-auto text-[10px] font-normal text-gray-400">Click to copy</span>
+        <span className="ml-auto text-[10px] font-normal text-gray-400">
+          Click to copy
+        </span>
       </button>
       {expanded && (
         <div className="space-y-4 border-t border-gray-200 px-4 pb-4 pt-3">
@@ -366,12 +377,16 @@ function AvailableVariables({ triggerIds }: { triggerIds: string[] }) {
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                 {group.source}
               </p>
-              <p className="mb-2 text-[10px] text-gray-400">{group.description}</p>
+              <p className="mb-2 text-[10px] text-gray-400">
+                {group.description}
+              </p>
               <div className="space-y-1.5">
                 {group.vars.map((v) => (
                   <div key={v.name} className="flex items-center gap-2">
                     <VariableTag name={v.name} />
-                    <span className="text-[10px] text-gray-400 truncate">{v.desc}</span>
+                    <span className="text-[10px] text-gray-400 truncate">
+                      {v.desc}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -396,6 +411,8 @@ export function ConfigPanel({
 }: ConfigPanelProps) {
   const githubConnected = Boolean(integrations?.github.connected);
   const slackConnected = Boolean(integrations?.slack.connected);
+  const googleConnected = Boolean(integrations?.google?.connected);
+  const notionConnected = Boolean(integrations?.notion?.connected);
 
   function updateConfig(config: Record<string, string | string[]>) {
     onUpdate({
@@ -407,26 +424,48 @@ export function ConfigPanel({
           ? "connected"
           : block.id.includes("slack") && slackConnected
             ? "connected"
-            : block.integrationStatus,
+            : block.id === "sheets-add" && googleConnected
+              ? "connected"
+              : block.id === "notion-create" && notionConnected
+                ? "connected"
+                : block.integrationStatus,
     });
   }
 
-  const webhookUrl = workflowId
-    ? `${API_URL}/api/webhooks/inbound/${workflowId}`
-    : "Save the workflow first to generate a webhook URL";
+  function getWebhookUrl(triggerId: string): string {
+    if (!workflowId) return "Save the workflow first to generate a webhook URL";
+    const routeMap: Record<string, string> = {
+      "stripe-trigger": "stripe",
+      "typeform-trigger": "typeform",
+      "webhook-trigger": "inbound",
+      "gmail-trigger": "inbound",
+      "calendar-trigger": "inbound",
+    };
+    const route = routeMap[triggerId] ?? "inbound";
+    return `${API_URL}/api/webhooks/${route}/${workflowId}`;
+  }
+
+  const webhookUrl = getWebhookUrl(block.id);
 
   const isTrigger = Object.keys(TRIGGER_VARIABLES).includes(block.id);
   const showVars =
-    !isTrigger && !["delay", "if-condition", "filter", "switch", "logger"].includes(block.id);
+    !isTrigger &&
+    !["delay", "if-condition", "filter", "switch", "logger"].includes(block.id);
 
   return (
     <aside className="h-full w-full shrink-0 border-l border-gray-200 bg-white animate-slide-in-right overflow-hidden flex flex-col">
       <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">Configure Block</h2>
+          <h2 className="text-sm font-semibold text-gray-900">
+            Configure Block
+          </h2>
           <p className="mt-0.5 text-xs text-gray-500">{block.name}</p>
         </div>
-        <button type="button" className="rounded-xl p-2 transition hover:bg-gray-100" onClick={onClose}>
+        <button
+          type="button"
+          className="rounded-xl p-2 transition hover:bg-gray-100"
+          onClick={onClose}
+        >
           <X className="h-4 w-4 text-gray-500" />
         </button>
       </div>
@@ -440,7 +479,9 @@ export function ConfigPanel({
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#24292f]">
                   <GitHubIcon className="h-4.5 w-4.5 text-white" />
                 </span>
-                <span className="text-sm font-medium text-gray-900">GitHub</span>
+                <span className="text-sm font-medium text-gray-900">
+                  GitHub
+                </span>
               </div>
               {githubConnected && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
@@ -471,21 +512,53 @@ export function ConfigPanel({
                 <CheckboxGroup
                   label="Event types"
                   options={[
-                    { value: "push", label: "Push", desc: "— code pushed to a branch" },
-                    { value: "pull_request", label: "Pull Request", desc: "— opened, closed, merged" },
-                    { value: "issues", label: "Issues", desc: "— created, edited, closed" },
-                    { value: "release", label: "Release", desc: "— published, drafted" },
-                    { value: "star", label: "Star", desc: "— repo starred / unstarred" },
+                    {
+                      value: "push",
+                      label: "Push",
+                      desc: "— code pushed to a branch",
+                    },
+                    {
+                      value: "pull_request",
+                      label: "Pull Request",
+                      desc: "— opened, closed, merged",
+                    },
+                    {
+                      value: "issues",
+                      label: "Issues",
+                      desc: "— created, edited, closed",
+                    },
+                    {
+                      value: "release",
+                      label: "Release",
+                      desc: "— published, drafted",
+                    },
+                    {
+                      value: "star",
+                      label: "Star",
+                      desc: "— repo starred / unstarred",
+                    },
                     { value: "fork", label: "Fork", desc: "— repo forked" },
-                    { value: "issue_comment", label: "Comments", desc: "— issue / PR comments" },
-                    { value: "create", label: "Branch/Tag created", desc: "— new branch or tag" },
+                    {
+                      value: "issue_comment",
+                      label: "Comments",
+                      desc: "— issue / PR comments",
+                    },
+                    {
+                      value: "create",
+                      label: "Branch/Tag created",
+                      desc: "— new branch or tag",
+                    },
                   ]}
-                  selected={((block.config.eventTypes as string[]) ?? []) as string[]}
+                  selected={
+                    ((block.config.eventTypes as string[]) ?? []) as string[]
+                  }
                   onChange={(values) => updateConfig({ eventTypes: values })}
                 />
                 <Hint>Leave empty to receive all event types.</Hint>
 
-                {((block.config.eventTypes as string[]) ?? []).includes("pull_request") && (
+                {((block.config.eventTypes as string[]) ?? []).includes(
+                  "pull_request",
+                ) && (
                   <CheckboxGroup
                     label="PR actions"
                     options={[
@@ -496,7 +569,9 @@ export function ConfigPanel({
                       { value: "review_requested", label: "Review requested" },
                       { value: "labeled", label: "Label added" },
                     ]}
-                    selected={((block.config.prActions as string[]) ?? []) as string[]}
+                    selected={
+                      ((block.config.prActions as string[]) ?? []) as string[]
+                    }
                     onChange={(values) => updateConfig({ prActions: values })}
                   />
                 )}
@@ -506,9 +581,13 @@ export function ConfigPanel({
                   <Input
                     placeholder="main (leave empty for all branches)"
                     value={(block.config.branchFilter as string) ?? ""}
-                    onChange={(e) => updateConfig({ branchFilter: e.target.value })}
+                    onChange={(e) =>
+                      updateConfig({ branchFilter: e.target.value })
+                    }
                   />
-                  <Hint>Only trigger for events on this branch. Use * for all.</Hint>
+                  <Hint>
+                    Only trigger for events on this branch. Use * for all.
+                  </Hint>
                 </div>
               </>
             )}
@@ -556,7 +635,9 @@ export function ConfigPanel({
                     rows={4}
                     placeholder="New push to {{repository_name}} by {{author_name}} on {{branch_name}}"
                     value={(block.config.messageTemplate as string) ?? ""}
-                    onChange={(e) => updateConfig({ messageTemplate: e.target.value })}
+                    onChange={(e) =>
+                      updateConfig({ messageTemplate: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -572,7 +653,9 @@ export function ConfigPanel({
                   <Input
                     placeholder=":rocket:"
                     value={(block.config.iconEmoji as string) ?? ""}
-                    onChange={(e) => updateConfig({ iconEmoji: e.target.value })}
+                    onChange={(e) =>
+                      updateConfig({ iconEmoji: e.target.value })
+                    }
                   />
                   <Hint>Use a Slack emoji like :robot_face: or :bell:</Hint>
                 </div>
@@ -584,9 +667,14 @@ export function ConfigPanel({
         {/* ═══════════════════ WEBHOOK TRIGGER ═══════════════════ */}
         {block.id === "webhook-trigger" && (
           <section className="rounded-2xl border border-gray-200 p-5 space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">Webhook Trigger</h3>
+            <h3 className="text-sm font-medium text-gray-900">
+              Webhook Trigger
+            </h3>
             <WebhookUrlDisplay url={webhookUrl} />
-            <Hint>Send a POST request with JSON body to this URL to trigger the workflow.</Hint>
+            <Hint>
+              Send a POST request with JSON body to this URL to trigger the
+              workflow.
+            </Hint>
           </section>
         )}
 
@@ -603,7 +691,9 @@ export function ConfigPanel({
                 onChange={(e) => updateConfig({ formIdFilter: e.target.value })}
               />
             </div>
-            <Hint>In Typeform, go to Connect &gt; Webhooks and paste the URL above.</Hint>
+            <Hint>
+              In Typeform, go to Connect &gt; Webhooks and paste the URL above.
+            </Hint>
           </section>
         )}
 
@@ -615,84 +705,42 @@ export function ConfigPanel({
             <CheckboxGroup
               label="Event types"
               options={[
-                { value: "payment_intent.succeeded", label: "Payment succeeded" },
-                { value: "payment_intent.payment_failed", label: "Payment failed" },
+                {
+                  value: "payment_intent.succeeded",
+                  label: "Payment succeeded",
+                },
+                {
+                  value: "payment_intent.payment_failed",
+                  label: "Payment failed",
+                },
                 { value: "invoice.paid", label: "Invoice paid" },
-                { value: "invoice.payment_failed", label: "Invoice payment failed" },
-                { value: "customer.subscription.created", label: "Subscription created" },
-                { value: "customer.subscription.deleted", label: "Subscription cancelled" },
-                { value: "checkout.session.completed", label: "Checkout completed" },
+                {
+                  value: "invoice.payment_failed",
+                  label: "Invoice payment failed",
+                },
+                {
+                  value: "customer.subscription.created",
+                  label: "Subscription created",
+                },
+                {
+                  value: "customer.subscription.deleted",
+                  label: "Subscription cancelled",
+                },
+                {
+                  value: "checkout.session.completed",
+                  label: "Checkout completed",
+                },
                 { value: "charge.refunded", label: "Charge refunded" },
               ]}
-              selected={((block.config.eventTypes as string[]) ?? []) as string[]}
+              selected={
+                ((block.config.eventTypes as string[]) ?? []) as string[]
+              }
               onChange={(values) => updateConfig({ eventTypes: values })}
             />
             <Hint>
-              Add the webhook URL in Stripe Dashboard &gt; Developers &gt; Webhooks and select these events.
+              Add the webhook URL in Stripe Dashboard &gt; Developers &gt;
+              Webhooks and select these events.
             </Hint>
-          </section>
-        )}
-
-        {/* ═══════════════════ GMAIL TRIGGER ═══════════════════ */}
-        {block.id === "gmail-trigger" && (
-          <section className="rounded-2xl border border-gray-200 p-5 space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">Gmail Trigger</h3>
-            <div>
-              <Label>Label filter</Label>
-              <select
-                className={selectClass}
-                value={(block.config.labelFilter as string) ?? "INBOX"}
-                onChange={(e) => updateConfig({ labelFilter: e.target.value })}
-              >
-                <option value="INBOX">Inbox</option>
-                <option value="IMPORTANT">Important</option>
-                <option value="STARRED">Starred</option>
-                <option value="UNREAD">Unread</option>
-              </select>
-            </div>
-            <div>
-              <Label>From filter (optional)</Label>
-              <Input
-                placeholder="sender@example.com"
-                value={(block.config.fromFilter as string) ?? ""}
-                onChange={(e) => updateConfig({ fromFilter: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Subject contains (optional)</Label>
-              <Input
-                placeholder="invoice, receipt..."
-                value={(block.config.subjectFilter as string) ?? ""}
-                onChange={(e) => updateConfig({ subjectFilter: e.target.value })}
-              />
-            </div>
-          </section>
-        )}
-
-        {/* ═══════════════════ CALENDAR TRIGGER ═══════════════════ */}
-        {block.id === "calendar-trigger" && (
-          <section className="rounded-2xl border border-gray-200 p-5 space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">Calendar Trigger</h3>
-            <div>
-              <Label>Calendar ID</Label>
-              <Input
-                placeholder="primary"
-                value={(block.config.calendarId as string) ?? ""}
-                onChange={(e) => updateConfig({ calendarId: e.target.value })}
-              />
-              <Hint>Use &quot;primary&quot; for your main Google Calendar.</Hint>
-            </div>
-            <CheckboxGroup
-              label="Event types"
-              options={[
-                { value: "created", label: "Event created" },
-                { value: "updated", label: "Event updated" },
-                { value: "cancelled", label: "Event cancelled" },
-                { value: "started", label: "Event starting (reminder)" },
-              ]}
-              selected={((block.config.calendarEventTypes as string[]) ?? []) as string[]}
-              onChange={(values) => updateConfig({ calendarEventTypes: values })}
-            />
           </section>
         )}
 
@@ -729,13 +777,16 @@ export function ConfigPanel({
               <Label>Body</Label>
               <Textarea
                 rows={6}
-                placeholder={`New push to {{repository_name}} on branch {{branch_name}}\n\nAuthor: {{author_name}}\nCommit: {{commit_message}}\n\nView changes: {{compare_url}}`}
+                placeholder={
+                  "New push to {{repository_name}} on branch {{branch_name}}\n\nAuthor: {{author_name}}\nCommit: {{commit_message}}\n\nView changes: {{compare_url}}"
+                }
                 value={(block.config.body as string) ?? ""}
                 onChange={(e) => updateConfig({ body: e.target.value })}
               />
             </div>
             <Hint>
-              Requires SMTP_USER and SMTP_PASS in .env. Use a Gmail App Password from myaccount.google.com/apppasswords
+              Requires SMTP_USER and SMTP_PASS in .env. Use a Gmail App Password
+              from myaccount.google.com/apppasswords
             </Hint>
           </section>
         )}
@@ -743,92 +794,153 @@ export function ConfigPanel({
         {/* ═══════════════════ GOOGLE SHEETS ═══════════════════ */}
         {block.id === "sheets-add" && (
           <section className="rounded-2xl border border-gray-200 p-5 space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">Google Sheets</h3>
-            <div>
-              <Label>Spreadsheet URL or ID</Label>
-              <Input
-                placeholder="https://docs.google.com/spreadsheets/d/..."
-                value={(block.config.spreadsheetUrl as string) ?? ""}
-                onChange={(e) => updateConfig({ spreadsheetUrl: e.target.value })}
-              />
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-900">
+                Google Sheets
+              </h3>
+              {googleConnected && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                  <CheckCircle2 className="h-3 w-3" /> Connected
+                </span>
+              )}
             </div>
-            <div>
-              <Label>Sheet name</Label>
-              <Input
-                placeholder="Sheet1"
-                value={(block.config.sheetName as string) ?? ""}
-                onChange={(e) => updateConfig({ sheetName: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Write mode</Label>
-              <select
-                className={selectClass}
-                value={(block.config.writeMode as string) ?? "append"}
-                onChange={(e) => updateConfig({ writeMode: e.target.value })}
-              >
-                <option value="append">Append new row</option>
-                <option value="update">Update existing row</option>
-              </select>
-            </div>
-            <div>
-              <Label>Column values (comma-separated)</Label>
-              <Input
-                placeholder="{{repository_name}}, {{author_name}}, {{commit_message}}, {{branch_name}}"
-                value={(block.config.values as string) ?? ""}
-                onChange={(e) => updateConfig({ values: e.target.value })}
-              />
-              <Hint>Each value maps to a column (A, B, C...) in the sheet.</Hint>
-            </div>
+
+            {!googleConnected ? (
+              <>
+                <Button
+                  className="w-full"
+                  onClick={() => onAuthorize("google")}
+                >
+                  <ExternalLink className="h-4 w-4" /> Connect Google
+                </Button>
+                <Hint>Required to read/write Google Sheets via API.</Hint>
+              </>
+            ) : (
+              <>
+                <div>
+                  <Label>Spreadsheet URL or ID</Label>
+                  <Input
+                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                    value={(block.config.spreadsheetUrl as string) ?? ""}
+                    onChange={(e) =>
+                      updateConfig({ spreadsheetUrl: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Sheet name</Label>
+                  <Input
+                    placeholder="Sheet1"
+                    value={(block.config.sheetName as string) ?? ""}
+                    onChange={(e) =>
+                      updateConfig({ sheetName: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Write mode</Label>
+                  <select
+                    className={selectClass}
+                    value={(block.config.writeMode as string) ?? "append"}
+                    onChange={(e) =>
+                      updateConfig({ writeMode: e.target.value })
+                    }
+                  >
+                    <option value="append">Append new row</option>
+                    <option value="update">Update existing row</option>
+                  </select>
+                </div>
+                <div>
+                  <Label>Column values (comma-separated)</Label>
+                  <Input
+                    placeholder="{{repository_name}}, {{author_name}}, {{commit_message}}, {{branch_name}}"
+                    value={(block.config.values as string) ?? ""}
+                    onChange={(e) => updateConfig({ values: e.target.value })}
+                  />
+                  <Hint>
+                    Each value maps to a column (A, B, C...) in the sheet.
+                  </Hint>
+                </div>
+              </>
+            )}
           </section>
         )}
 
         {/* ═══════════════════ NOTION ═══════════════════ */}
         {block.id === "notion-create" && (
           <section className="rounded-2xl border border-gray-200 p-5 space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">Notion Page</h3>
-            <div>
-              <Label>Database ID</Label>
-              <Input
-                placeholder="abc123..."
-                value={(block.config.databaseId as string) ?? ""}
-                onChange={(e) => updateConfig({ databaseId: e.target.value })}
-              />
-              <Hint>Find this in the Notion database URL after the workspace name.</Hint>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-900">Notion Page</h3>
+              {notionConnected && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                  <CheckCircle2 className="h-3 w-3" /> Connected
+                </span>
+              )}
             </div>
-            <div>
-              <Label>Title property</Label>
-              <Input
-                placeholder="{{repository_name}} — {{commit_message}}"
-                value={(block.config.title as string) ?? ""}
-                onChange={(e) => updateConfig({ title: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Content</Label>
-              <Textarea
-                rows={4}
-                placeholder={`Branch: {{branch_name}}\nAuthor: {{author_name}}\nCommit: {{commit_message}}`}
-                value={(block.config.content as string) ?? ""}
-                onChange={(e) => updateConfig({ content: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Status property (optional)</Label>
-              <Input
-                placeholder="To Do"
-                value={(block.config.status as string) ?? ""}
-                onChange={(e) => updateConfig({ status: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Tags (comma-separated, optional)</Label>
-              <Input
-                placeholder="github, automation"
-                value={(block.config.tags as string) ?? ""}
-                onChange={(e) => updateConfig({ tags: e.target.value })}
-              />
-            </div>
+
+            {!notionConnected ? (
+              <>
+                <Button
+                  className="w-full"
+                  onClick={() => onAuthorize("notion")}
+                >
+                  <ExternalLink className="h-4 w-4" /> Connect Notion
+                </Button>
+                <Hint>Required to create pages in your Notion workspace.</Hint>
+              </>
+            ) : (
+              <>
+                <div>
+                  <Label>Database ID</Label>
+                  <Input
+                    placeholder="abc123..."
+                    value={(block.config.databaseId as string) ?? ""}
+                    onChange={(e) =>
+                      updateConfig({ databaseId: e.target.value })
+                    }
+                  />
+                  <Hint>
+                    Find this in the Notion database URL after the workspace
+                    name.
+                  </Hint>
+                </div>
+                <div>
+                  <Label>Title property</Label>
+                  <Input
+                    placeholder="{{repository_name}} — {{commit_message}}"
+                    value={(block.config.title as string) ?? ""}
+                    onChange={(e) => updateConfig({ title: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Content</Label>
+                  <Textarea
+                    rows={4}
+                    placeholder={
+                      "Branch: {{branch_name}}\nAuthor: {{author_name}}\nCommit: {{commit_message}}"
+                    }
+                    value={(block.config.content as string) ?? ""}
+                    onChange={(e) => updateConfig({ content: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Status property (optional)</Label>
+                  <Input
+                    placeholder="To Do"
+                    value={(block.config.status as string) ?? ""}
+                    onChange={(e) => updateConfig({ status: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Tags (comma-separated, optional)</Label>
+                  <Input
+                    placeholder="github, automation"
+                    value={(block.config.tags as string) ?? ""}
+                    onChange={(e) => updateConfig({ tags: e.target.value })}
+                  />
+                </div>
+              </>
+            )}
           </section>
         )}
 
@@ -871,11 +983,15 @@ export function ConfigPanel({
               <Label>Body template</Label>
               <Textarea
                 rows={4}
-                placeholder={'{"repo": "{{repository_name}}", "message": "{{commit_message}}"}'}
+                placeholder={
+                  '{"repo": "{{repository_name}}", "message": "{{commit_message}}"}'
+                }
                 value={(block.config.body as string) ?? ""}
                 onChange={(e) => updateConfig({ body: e.target.value })}
               />
-              <Hint>Leave empty to forward the previous block&apos;s output as JSON.</Hint>
+              <Hint>
+                Leave empty to forward the previous block&apos;s output as JSON.
+              </Hint>
             </div>
           </section>
         )}
@@ -883,7 +999,9 @@ export function ConfigPanel({
         {/* ═══════════════════ DISCORD ═══════════════════ */}
         {block.id === "discord-send" && (
           <section className="rounded-2xl border border-gray-200 p-5 space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">Discord Message</h3>
+            <h3 className="text-sm font-medium text-gray-900">
+              Discord Message
+            </h3>
             <div>
               <Label>Webhook URL</Label>
               <Input
@@ -891,13 +1009,18 @@ export function ConfigPanel({
                 value={(block.config.webhookUrl as string) ?? ""}
                 onChange={(e) => updateConfig({ webhookUrl: e.target.value })}
               />
-              <Hint>Create a webhook in Discord: Server Settings &gt; Integrations &gt; Webhooks.</Hint>
+              <Hint>
+                Create a webhook in Discord: Server Settings &gt; Integrations
+                &gt; Webhooks.
+              </Hint>
             </div>
             <div>
               <Label>Message</Label>
               <Textarea
                 rows={4}
-                placeholder={"New push to {{repository_name}} by {{author_name}}\nCommit: {{commit_message}}"}
+                placeholder={
+                  "New push to {{repository_name}} by {{author_name}}\nCommit: {{commit_message}}"
+                }
                 value={(block.config.message as string) ?? ""}
                 onChange={(e) => updateConfig({ message: e.target.value })}
               />
@@ -1031,7 +1154,9 @@ export function ConfigPanel({
         )}
 
         {/* ── Available Variables (for actions) ── */}
-        {showVars && <AvailableVariables triggerIds={Object.keys(TRIGGER_VARIABLES)} />}
+        {showVars && (
+          <AvailableVariables triggerIds={Object.keys(TRIGGER_VARIABLES)} />
+        )}
 
         {/* ── Output Variables (for triggers) ── */}
         {isTrigger && <AvailableVariables triggerIds={[block.id]} />}
