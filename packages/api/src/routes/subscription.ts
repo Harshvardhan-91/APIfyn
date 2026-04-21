@@ -89,34 +89,38 @@ router.get(
 router.post(
   "/create",
   authenticateFirebaseToken,
-  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const user = req.user;
     const { planSlug, interval = "monthly" } = req.body;
 
     if (!planSlug) {
-      return res.status(400).json({ success: false, error: "planSlug is required" });
+      res.status(400).json({ success: false, error: "planSlug is required" });
+      return;
     }
 
     const plan = await prisma.plan.findUnique({ where: { slug: planSlug } });
     if (!plan) {
-      return res.status(404).json({ success: false, error: "Plan not found" });
+      res.status(404).json({ success: false, error: "Plan not found" });
+      return;
     }
 
     if (plan.monthlyPrice === 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: "Cannot subscribe to a free plan via payment",
       });
+      return;
     }
 
     const razorpayPlanId =
       interval === "yearly" ? plan.razorpayPlanIdY : plan.razorpayPlanIdM;
 
     if (!razorpayPlanId) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: "Razorpay plan not configured for this tier. Contact support.",
       });
+      return;
     }
 
     // Cancel any existing subscription first
@@ -169,7 +173,7 @@ router.post(
 router.post(
   "/verify",
   authenticateFirebaseToken,
-  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const {
       razorpay_payment_id,
       razorpay_subscription_id,
@@ -181,18 +185,20 @@ router.post(
       !razorpay_subscription_id ||
       !razorpay_signature
     ) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: "Missing payment verification fields",
       });
+      return;
     }
 
     const secret = process.env.RAZORPAY_KEY_SECRET;
     if (!secret) {
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         error: "Payment verification not configured",
       });
+      return;
     }
 
     const expectedSig = crypto
@@ -204,10 +210,11 @@ router.post(
       logger.warn(
         `Payment verification failed for sub ${razorpay_subscription_id}`,
       );
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: "Payment verification failed",
       });
+      return;
     }
 
     const subscription = await prisma.subscription.findUnique({
@@ -216,10 +223,11 @@ router.post(
     });
 
     if (!subscription) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: "Subscription not found",
       });
+      return;
     }
 
     const now = new Date();
@@ -264,7 +272,7 @@ router.post(
 router.post(
   "/cancel",
   authenticateFirebaseToken,
-  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const user = req.user;
 
     const subscription = await prisma.subscription.findUnique({
@@ -272,10 +280,11 @@ router.post(
     });
 
     if (!subscription) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: "No active subscription found",
       });
+      return;
     }
 
     try {
@@ -304,16 +313,18 @@ router.post(
 // Razorpay webhook (no auth — uses signature verification)
 router.post(
   "/webhook",
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
     if (!webhookSecret) {
       logger.error("RAZORPAY_WEBHOOK_SECRET not set");
-      return res.status(500).json({ error: "Webhook not configured" });
+      res.status(500).json({ error: "Webhook not configured" });
+      return;
     }
 
     const signature = req.headers["x-razorpay-signature"] as string;
     if (!signature) {
-      return res.status(400).json({ error: "Missing signature" });
+      res.status(400).json({ error: "Missing signature" });
+      return;
     }
 
     const expectedSig = crypto
@@ -323,7 +334,8 @@ router.post(
 
     if (expectedSig !== signature) {
       logger.warn("Razorpay webhook signature mismatch");
-      return res.status(400).json({ error: "Invalid signature" });
+      res.status(400).json({ error: "Invalid signature" });
+      return;
     }
 
     const event = req.body.event as string;
