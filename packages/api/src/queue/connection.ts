@@ -3,25 +3,36 @@ import { createLogger } from "../utils/logger";
 
 const logger = createLogger();
 
-let connection: IORedis | null = null;
+const connections: IORedis[] = [];
+
+function buildRedisOptions(): ConstructorParameters<typeof IORedis>[1] {
+  const url = process.env.REDIS_URL || "redis://localhost:6379";
+  const useTls = url.startsWith("rediss://");
+  return {
+    maxRetriesPerRequest: null,
+    ...(useTls && { tls: { rejectUnauthorized: false } }),
+  };
+}
+
+function getRedisUrl(): string {
+  return process.env.REDIS_URL || "redis://localhost:6379";
+}
+
+export function createRedisConnection(): IORedis {
+  const conn = new IORedis(getRedisUrl(), buildRedisOptions());
+  conn.on("connect", () => logger.info("Redis connected"));
+  conn.on("error", (err) => logger.error("Redis error:", err));
+  connections.push(conn);
+  return conn;
+}
 
 export function getRedisConnection(): IORedis {
-  if (!connection) {
-    const url = process.env.REDIS_URL || "redis://localhost:6379";
-    const useTls = url.startsWith("rediss://");
-    connection = new IORedis(url, {
-      maxRetriesPerRequest: null,
-      ...(useTls && { tls: { rejectUnauthorized: false } }),
-    });
-    connection.on("connect", () => logger.info("Redis connected"));
-    connection.on("error", (err) => logger.error("Redis error:", err));
-  }
-  return connection;
+  return createRedisConnection();
 }
 
 export async function closeRedis(): Promise<void> {
-  if (connection) {
-    await connection.quit();
-    connection = null;
+  for (const conn of connections) {
+    await conn.quit();
   }
+  connections.length = 0;
 }
