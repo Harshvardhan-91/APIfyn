@@ -9,9 +9,10 @@ export type DashboardData = {
   thisWeek: number;
   plan?: {
     name: string;
+    slug: string;
     type: string;
-    subscriptionStatus?: string;
-    subscriptionEndDate?: string;
+    subscriptionStatus?: string | null;
+    subscriptionEndDate?: string | null;
     workflowsUsed: number;
     workflowsLimit: number;
     apiCallsUsed: number;

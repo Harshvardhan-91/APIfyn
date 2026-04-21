@@ -8,39 +8,45 @@ datasource db {
 }
 
 model Plan {
-  id             String        @id @default(cuid())
-  name           String        @unique
-  description    String
-  monthlyPrice   Float
-  yearlyPrice    Float
-  features       String[]
-  apiCallsLimit  Int
-  workflowsLimit Int
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                String         @id @default(cuid())
+  name              String         @unique
+  slug              String         @unique
+  description       String
+  monthlyPrice      Float
+  yearlyPrice       Float
+  features          String[]
+  apiCallsLimit     Int
+  workflowsLimit    Int
+  razorpayPlanIdM   String?        // Razorpay plan ID for monthly billing
+  razorpayPlanIdY   String?        // Razorpay plan ID for yearly billing
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  subscriptions     Subscription[]
 
   @@map("plans")
 }
 
 model User {
-  id            String              @id @default(cuid())
-  googleId      String              @unique
-  email         String              @unique
-  displayName   String?
-  photoURL      String?
-  emailVerified Boolean             @default(false)
-  firstName     String?
-  lastName      String?
-  company       String?
-  jobTitle      String?
-  apiCallsUsed  Int                 @default(0)
-  workflowsUsed Int                 @default(0)
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  lastLoginAt   DateTime?
-  integrations  Integration[]
-  executions    WorkflowExecution[]
-  workflows     Workflow[]
+  id               String              @id @default(cuid())
+  googleId         String              @unique
+  email            String              @unique
+  displayName      String?
+  photoURL         String?
+  emailVerified    Boolean             @default(false)
+  firstName        String?
+  lastName         String?
+  company          String?
+  jobTitle         String?
+  apiCallsUsed     Int                 @default(0)
+  apiCallsResetAt  DateTime            @default(now())
+  workflowsUsed    Int                 @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  lastLoginAt      DateTime?
+  integrations     Integration[]
+  executions       WorkflowExecution[]
+  workflows        Workflow[]
+  subscription     Subscription?
 
   @@map("users")
 }
@@ -140,4 +146,33 @@ enum IntegrationType {
   GOOGLE_DRIVE
   CUSTOM
   GITHUB
+}
+
+model Subscription {
+  id                  String             @id @default(cuid())
+  razorpaySubId       String             @unique
+  razorpayCustomerId  String?
+  status              SubscriptionStatus @default(CREATED)
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  interval            String             @default("monthly") // "monthly" | "yearly"
+  userId              String             @unique
+  planId              String
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                Plan               @relation(fields: [planId], references: [id])
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  CREATED
+  AUTHENTICATED
+  ACTIVE
+  PENDING
+  HALTED
+  CANCELLED
+  COMPLETED
+  EXPIRED
 }

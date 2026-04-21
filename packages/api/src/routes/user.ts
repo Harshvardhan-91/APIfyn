@@ -5,6 +5,7 @@ import {
   authenticateFirebaseToken,
 } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
+import { getUserPlanLimits } from "../services/plan.service";
 import { createLogger } from "../utils/logger";
 
 const router = express.Router();
@@ -96,11 +97,28 @@ router.get(
         take: 5,
       });
 
+      const limits = await getUserPlanLimits(user.id);
+
+      const subscription = await prisma.subscription.findUnique({
+        where: { userId: user.id },
+      });
+
       const dashboardData = {
         totalWorkflows,
         executionsToday,
         connectedApps: totalIntegrations,
         thisWeek: executionsThisWeek,
+        plan: {
+          name: limits.planName,
+          slug: limits.planSlug,
+          type: limits.planSlug === "starter" ? "FREE" : "PAID",
+          workflowsUsed: limits.workflowsUsed,
+          workflowsLimit: limits.workflowsLimit === -1 ? 999999 : limits.workflowsLimit,
+          apiCallsUsed: limits.apiCallsUsed,
+          apiCallsLimit: limits.apiCallsLimit === -1 ? 999999 : limits.apiCallsLimit,
+          subscriptionStatus: subscription?.status?.toLowerCase() ?? null,
+          subscriptionEndDate: subscription?.currentPeriodEnd?.toISOString() ?? null,
+        },
         recentActivity: recentActivity.map((execution) => ({
           id: execution.id,
           type: "workflow_execution",

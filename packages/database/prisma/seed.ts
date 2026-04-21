@@ -3,54 +3,52 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  await prisma.plan.deleteMany();
-
   const plans = [
     {
       name: "Starter",
+      slug: "starter",
       description:
         "Perfect for individuals getting started with automation workflows.",
       monthlyPrice: 0,
       yearlyPrice: 0,
       features: [
         "Up to 100 API calls per month",
-        "5 automation workflows",
-        "Basic integrations",
-        "Email notifications",
+        "2 automation workflows",
+        "GitHub & Slack integrations",
         "Community support",
-        "Standard templates",
       ],
       apiCallsLimit: 100,
-      workflowsLimit: 5,
+      workflowsLimit: 2,
     },
     {
       name: "Professional",
-      description: "Advanced automation for growing teams and businesses.",
-      monthlyPrice: 2000,
+      slug: "professional",
+      description: "For growing teams that need more power.",
+      monthlyPrice: 2000, // ₹2000 = $20 equivalent, Razorpay uses paise
       yearlyPrice: 19200,
       features: [
         "Up to 10,000 API calls per month",
-        "Unlimited automation workflows",
-        "Premium integrations",
-        "Real-time monitoring and alerts",
-        "Priority email support",
-        "Advanced analytics dashboard",
+        "20 automation workflows",
+        "All integrations",
+        "Priority support",
+        "Execution logs",
       ],
       apiCallsLimit: 10000,
-      workflowsLimit: -1,
+      workflowsLimit: 20,
     },
     {
       name: "Enterprise",
-      description: "Complete automation solution for large-scale operations.",
+      slug: "enterprise",
+      description: "For organizations with advanced needs.",
       monthlyPrice: 3000,
       yearlyPrice: 30000,
       features: [
         "Unlimited API calls",
-        "Advanced workflow automation",
-        "All premium integrations",
-        "24/7 dedicated support",
-        "Custom onboarding",
-        "SLA guarantees",
+        "Unlimited workflows",
+        "Custom integrations",
+        "SLA guarantee",
+        "Dedicated support",
+        "SSO & SAML",
       ],
       apiCallsLimit: -1,
       workflowsLimit: -1,
@@ -59,7 +57,7 @@ async function main() {
 
   for (const plan of plans) {
     await prisma.plan.upsert({
-      where: { name: plan.name },
+      where: { slug: plan.slug },
       update: plan,
       create: plan,
     });

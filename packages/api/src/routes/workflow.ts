@@ -6,6 +6,10 @@ import {
 } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
 import { OAuthService } from "../services/oauth.service";
+import {
+  canCreateWorkflow,
+  getUserPlanLimits,
+} from "../services/plan.service";
 import { WebhookService } from "../services/webhook.service";
 import { createLogger } from "../utils/logger";
 
@@ -27,6 +31,21 @@ router.post(
         return res.status(400).json({
           success: false,
           error: "Name and definition are required",
+        });
+      }
+
+      // Enforce plan workflow limit
+      const limits = await getUserPlanLimits(user.id);
+      if (!canCreateWorkflow(limits)) {
+        return res.status(403).json({
+          success: false,
+          error: `You've reached the ${limits.workflowsLimit} workflow limit on the ${limits.planName} plan. Upgrade to create more workflows.`,
+          code: "WORKFLOW_LIMIT_REACHED",
+          usage: {
+            current: limits.workflowsUsed,
+            limit: limits.workflowsLimit,
+            plan: limits.planSlug,
+          },
         });
       }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { AppIcon } from "@/components/icons/brand-icons";
+import { usePayment } from "@/components/providers/payment-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { useFetch } from "@/hooks/use-fetch";
 import type { ApiResult, Workflow } from "@/lib/api/types";
 import {
   AlertCircle,
+  ArrowUpRight,
   Calendar,
   CheckCircle,
   MoreHorizontal,
@@ -44,12 +46,19 @@ const appNameFromBlock = (type?: string) => {
 
 export function WorkflowsPage() {
   const router = useRouter();
+  const { plan, usage } = usePayment();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "paused">(
     "all",
   );
   const { data, isLoading } =
     useFetch<ApiResult<{ workflows: Workflow[] }>>("/api/workflow");
+
+  const atWorkflowLimit =
+    plan &&
+    usage &&
+    plan.workflowsLimit !== -1 &&
+    usage.workflows >= plan.workflowsLimit;
 
   const workflows = useMemo<ProcessedWorkflow[]>(() => {
     const list = data?.workflows ?? [];
@@ -109,11 +118,40 @@ export function WorkflowsPage() {
               Manage and monitor your automation workflows
             </p>
           </div>
-          <Button onClick={() => router.push("/workflows/create")}>
-            <Plus className="h-4 w-4" />
-            New Workflow
+          <Button
+            onClick={() => router.push(atWorkflowLimit ? "/pricing" : "/workflows/create")}
+            variant={atWorkflowLimit ? "secondary" : "primary"}
+          >
+            {atWorkflowLimit ? (
+              <>
+                <ArrowUpRight className="h-4 w-4" />
+                Upgrade Plan
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                New Workflow
+              </>
+            )}
           </Button>
         </div>
+
+        {atWorkflowLimit ? (
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+            <p className="text-sm text-amber-800">
+              You&apos;ve reached the {plan.workflowsLimit}-workflow limit on the{" "}
+              <span className="font-semibold">{plan.name}</span> plan.{" "}
+              <button
+                type="button"
+                className="font-semibold underline hover:no-underline"
+                onClick={() => router.push("/pricing")}
+              >
+                Upgrade to create more.
+              </button>
+            </p>
+          </div>
+        ) : null}
 
         {/* Filters */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row">

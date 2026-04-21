@@ -238,20 +238,29 @@ export function WorkflowBuilderPage() {
     const path = workflowId ? `/api/workflow/${workflowId}` : "/api/workflow";
     const method = workflowId ? "PUT" : "POST";
 
-    await apiFetch(path, {
-      method,
-      token: user.token,
-      body: JSON.stringify({
-        name: workflowName.trim(),
-        description: `Workflow with ${blocks.length} blocks and ${connections.length} connections`,
-        definition,
-        category: "general",
-        triggerType: "MANUAL",
-        isActive: true,
-      }),
-    });
+    try {
+      await apiFetch(path, {
+        method,
+        token: user.token,
+        body: JSON.stringify({
+          name: workflowName.trim(),
+          description: `Workflow with ${blocks.length} blocks and ${connections.length} connections`,
+          definition,
+          category: "general",
+          triggerType: "MANUAL",
+          isActive: true,
+        }),
+      });
 
-    router.push("/workflows");
+      router.push("/workflows");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to save workflow";
+      if (msg.includes("workflow limit") || msg.includes("Upgrade")) {
+        setMessage(msg);
+      } else {
+        setMessage(msg);
+      }
+    }
   }
 
   return (

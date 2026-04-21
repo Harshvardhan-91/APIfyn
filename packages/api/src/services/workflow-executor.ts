@@ -2,6 +2,11 @@ import type { BlockContext } from "../integrations/base";
 import { IntegrationRegistry } from "../integrations/registry";
 import type { WorkflowJobData } from "../queue/queues";
 import { prisma } from "../db";
+import {
+  canExecuteWorkflow,
+  getUserPlanLimits,
+  incrementApiCalls,
+} from "./plan.service";
 import { createLogger } from "../utils/logger";
 
 const logger = createLogger();
@@ -82,6 +87,26 @@ export async function executeWorkflow(data: WorkflowJobData): Promise<void> {
     if (!workflow) {
       throw new Error(`Workflow ${workflowId} not found`);
     }
+
+    // Enforce API call limit
+    const limits = await getUserPlanLimits(workflow.userId);
+    if (!canExecuteWorkflow(limits)) {
+      logger.warn(
+        `API call limit reached for user ${workflow.userId} (${limits.apiCallsUsed}/${limits.apiCallsLimit})`,
+      );
+      await prisma.workflowExecution.update({
+        where: { id: executionId },
+        data: {
+          status: "FAILED",
+          completedAt: new Date(),
+          duration: Date.now() - startTime,
+          errorMessage: `Monthly API call limit reached (${limits.apiCallsUsed}/${limits.apiCallsLimit}). Upgrade your plan for more.`,
+        },
+      });
+      return;
+    }
+
+    await incrementApiCalls(workflow.userId);
 
     const definition = workflow.definition as WorkflowDefinition | null;
     if (!definition?.blocks?.length) {
