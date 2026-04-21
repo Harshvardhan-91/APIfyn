@@ -24,7 +24,7 @@ import {
   Unplug,
   Zap,
 } from "lucide-react";
-import { type ComponentType, useState } from "react";
+import { type ComponentType, useEffect, useRef, useState } from "react";
 
 type ProviderConfig = {
   id: string;
@@ -35,6 +35,7 @@ type ProviderConfig = {
   text: string;
   ring: string;
   connectType: "oauth" | "config";
+  statusKey?: keyof IntegrationStatus;
   docsUrl?: string;
   authMethod: string;
 };
@@ -50,6 +51,7 @@ const providers: ProviderConfig[] = [
     text: "text-white",
     ring: "ring-gray-900/20",
     connectType: "oauth",
+    statusKey: "github",
     docsUrl: "https://docs.github.com/en/webhooks",
     authMethod: "OAuth",
   },
@@ -63,7 +65,34 @@ const providers: ProviderConfig[] = [
     text: "text-white",
     ring: "ring-purple-900/20",
     connectType: "oauth",
+    statusKey: "slack",
     docsUrl: "https://api.slack.com",
+    authMethod: "OAuth",
+  },
+  {
+    id: "notion",
+    name: "Notion",
+    description:
+      "Create pages and update databases. Add status badges, tags, and structured content.",
+    icon: NotionIcon,
+    bg: "bg-black",
+    text: "text-white",
+    ring: "ring-gray-900/20",
+    connectType: "oauth",
+    statusKey: "notion",
+    authMethod: "OAuth",
+  },
+  {
+    id: "google",
+    name: "Google Sheets",
+    description:
+      "Read and write data to Google Spreadsheets. Append rows or overwrite existing data.",
+    icon: GoogleSheetsIcon,
+    bg: "bg-green-50",
+    text: "text-green-700",
+    ring: "ring-green-500/20",
+    connectType: "oauth",
+    statusKey: "google",
     authMethod: "OAuth",
   },
   {
@@ -89,30 +118,6 @@ const providers: ProviderConfig[] = [
     ring: "ring-red-500/20",
     connectType: "config",
     authMethod: "SMTP",
-  },
-  {
-    id: "notion",
-    name: "Notion",
-    description:
-      "Create pages and update databases. Add status badges, tags, and structured content.",
-    icon: NotionIcon,
-    bg: "bg-black",
-    text: "text-white",
-    ring: "ring-gray-900/20",
-    connectType: "config",
-    authMethod: "API Key",
-  },
-  {
-    id: "sheets",
-    name: "Google Sheets",
-    description:
-      "Read and write data to Google Spreadsheets. Append rows or overwrite existing data.",
-    icon: GoogleSheetsIcon,
-    bg: "bg-green-50",
-    text: "text-green-700",
-    ring: "ring-green-500/20",
-    connectType: "config",
-    authMethod: "API Key",
   },
   {
     id: "stripe",
@@ -147,6 +152,22 @@ export function IntegrationsPage() {
   >("/api/integrations/status");
 
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+  const popupRef = useRef<Window | null>(null);
+
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      const { type } = event.data ?? {};
+      if (
+        typeof type === "string" &&
+        type.endsWith("_auth_success")
+      ) {
+        mutate();
+        setLoadingProvider(null);
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [mutate]);
 
   async function connect(provider: string) {
     if (!user?.token) return;
@@ -161,9 +182,11 @@ export function IntegrationsPage() {
         "_blank",
         "width=600,height=700",
       );
+      popupRef.current = popup;
       const poll = setInterval(() => {
-        if (popup?.closed) {
+        if (!popup || popup.closed) {
           clearInterval(poll);
+          popupRef.current = null;
           mutate();
           setLoadingProvider(null);
         }
@@ -187,9 +210,13 @@ export function IntegrationsPage() {
     }
   }
 
-  const connectedCount = data
-    ? Object.values(data.integrations ?? {}).filter((v) => v?.connected).length
-    : 0;
+  function isConnected(provider: ProviderConfig): boolean {
+    if (!provider.statusKey || !data?.integrations) return false;
+    const status = data.integrations[provider.statusKey];
+    return Boolean(status?.connected);
+  }
+
+  const connectedCount = providers.filter((p) => isConnected(p)).length;
 
   return (
     <main className="min-h-screen bg-gray-50/50">
@@ -226,12 +253,8 @@ export function IntegrationsPage() {
         {/* Grid */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {providers.map((provider) => {
-            const isOAuth = provider.connectType === "oauth";
-            const connected = Boolean(
-              isOAuth &&
-                data?.integrations?.[provider.id as keyof IntegrationStatus]
-                  ?.connected,
-            );
+            const hasOAuth = provider.connectType === "oauth";
+            const connected = isConnected(provider);
             const isActionLoading = loadingProvider === provider.id;
 
             return (
@@ -285,7 +308,7 @@ export function IntegrationsPage() {
                           Active
                         </span>
                       </>
-                    ) : isOAuth ? (
+                    ) : hasOAuth ? (
                       <>
                         <AlertCircle className="h-3.5 w-3.5 text-gray-300" />
                         <span className="text-xs text-gray-400">
@@ -312,7 +335,7 @@ export function IntegrationsPage() {
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     )}
-                    {isOAuth ? (
+                    {hasOAuth ? (
                       connected ? (
                         <button
                           type="button"
