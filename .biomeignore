@@ -1,0 +1,7 @@
+legacy
+node_modules
+.next
+dist
+coverage
+package-lock.json
+packages/api/package-lock.json
