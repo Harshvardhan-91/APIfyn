@@ -8,6 +8,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -25,7 +26,7 @@ type AuthContextValue = {
   user: AppUser | null;
   loading: boolean;
   error: string | null;
-  login: () => void;
+  login: () => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<string>;
 };
@@ -72,6 +73,11 @@ function AuthProviderInner({ children }: { children: ReactNode }) {
     restoreSession();
   }, [restoreSession]);
 
+  const loginPromiseRef = useRef<{
+    resolve: () => void;
+    reject: (err: unknown) => void;
+  } | null>(null);
+
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setError(null);
@@ -90,24 +96,33 @@ function AuthProviderInner({ children }: { children: ReactNode }) {
 
         localStorage.setItem(TOKEN_KEY, data.token);
         setUser({ ...data.user, token: data.token });
+        loginPromiseRef.current?.resolve();
       } catch (loginError) {
         setError(
           loginError instanceof Error
             ? loginError.message
             : "Authentication failed",
         );
+        loginPromiseRef.current?.reject(loginError);
       } finally {
         setLoading(false);
+        loginPromiseRef.current = null;
       }
     },
     onError: (errorResponse) => {
-      setError(errorResponse.error_description ?? "Google login failed");
+      const msg = errorResponse.error_description ?? "Google login failed";
+      setError(msg);
+      loginPromiseRef.current?.reject(new Error(msg));
+      loginPromiseRef.current = null;
     },
   });
 
-  function login() {
+  function login(): Promise<void> {
     setError(null);
-    googleLogin();
+    return new Promise<void>((resolve, reject) => {
+      loginPromiseRef.current = { resolve, reject };
+      googleLogin();
+    });
   }
 
   async function logout() {
