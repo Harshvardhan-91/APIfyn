@@ -12,9 +12,10 @@ import {
   Copy,
   ExternalLink,
   Info,
+  Search,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { BuilderBlock } from "./types";
 
 type ConfigPanelProps = {
@@ -32,6 +33,127 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
 const selectClass =
   "w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm transition focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-100";
+
+/* ── Searchable select dropdown ── */
+function SearchableSelect({
+  label,
+  placeholder,
+  searchPlaceholder,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  searchPlaceholder?: string;
+  options: Array<{ value: string; label: string; suffix?: string }>;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = useMemo(() => {
+    if (!query) return options;
+    const q = query.toLowerCase();
+    return options.filter(
+      (o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q),
+    );
+  }, [options, query]);
+
+  const selectedLabel = options.find((o) => o.value === value)?.label;
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (open && inputRef.current) inputRef.current.focus();
+  }, [open]);
+
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div ref={containerRef} className="relative">
+        <button
+          type="button"
+          className={`${selectClass} flex items-center justify-between text-left`}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span className={selectedLabel ? "text-gray-900" : "text-gray-400"}>
+            {selectedLabel ?? placeholder}
+          </span>
+          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+        {open && (
+          <div className="absolute z-50 mt-1.5 w-full rounded-xl border border-gray-200 bg-white shadow-lg">
+            <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2">
+              <Search className="h-3.5 w-3.5 text-gray-400" />
+              <input
+                ref={inputRef}
+                type="text"
+                className="w-full bg-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none"
+                placeholder={searchPlaceholder ?? "Search..."}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              {query && (
+                <button
+                  type="button"
+                  className="text-gray-400 hover:text-gray-600"
+                  onClick={() => setQuery("")}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            <div className="max-h-52 overflow-y-auto py-1">
+              {filtered.length === 0 ? (
+                <p className="px-3 py-4 text-center text-xs text-gray-400">
+                  No results for &quot;{query}&quot;
+                </p>
+              ) : (
+                filtered.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition hover:bg-gray-50 ${
+                      opt.value === value ? "bg-gray-50 font-medium text-gray-900" : "text-gray-700"
+                    }`}
+                    onClick={() => {
+                      onChange(opt.value);
+                      setOpen(false);
+                      setQuery("");
+                    }}
+                  >
+                    <span className="truncate">{opt.label}</span>
+                    <span className="ml-2 flex items-center gap-1.5">
+                      {opt.suffix && (
+                        <span className="text-[10px] text-gray-400">{opt.suffix}</span>
+                      )}
+                      {opt.value === value && (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      )}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return (
@@ -333,21 +455,18 @@ export function ConfigPanel({
               </Button>
             ) : (
               <>
-                <div>
-                  <Label>Repository</Label>
-                  <select
-                    className={selectClass}
-                    value={(block.config.repository as string) ?? ""}
-                    onChange={(e) => updateConfig({ repository: e.target.value })}
-                  >
-                    <option value="">Select repository</option>
-                    {repositories.map((repo) => (
-                      <option key={repo.id} value={repo.full_name}>
-                        {repo.full_name} {repo.private ? "(Private)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SearchableSelect
+                  label="Repository"
+                  placeholder="Select repository"
+                  searchPlaceholder="Search repositories..."
+                  options={repositories.map((repo) => ({
+                    value: repo.full_name,
+                    label: repo.full_name,
+                    suffix: repo.private ? "Private" : undefined,
+                  }))}
+                  value={(block.config.repository as string) ?? ""}
+                  onChange={(v) => updateConfig({ repository: v })}
+                />
 
                 <CheckboxGroup
                   label="Event types"
@@ -419,21 +538,18 @@ export function ConfigPanel({
               </Button>
             ) : (
               <>
-                <div>
-                  <Label>Channel</Label>
-                  <select
-                    className={selectClass}
-                    value={(block.config.channel as string) ?? ""}
-                    onChange={(e) => updateConfig({ channel: e.target.value })}
-                  >
-                    <option value="">Select channel</option>
-                    {channels.map((ch) => (
-                      <option key={ch.id} value={ch.id}>
-                        #{ch.name} {ch.is_private ? "(Private)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SearchableSelect
+                  label="Channel"
+                  placeholder="Select channel"
+                  searchPlaceholder="Search channels..."
+                  options={channels.map((ch) => ({
+                    value: ch.id,
+                    label: `#${ch.name}`,
+                    suffix: ch.is_private ? "Private" : undefined,
+                  }))}
+                  value={(block.config.channel as string) ?? ""}
+                  onChange={(v) => updateConfig({ channel: v })}
+                />
                 <div>
                   <Label>Message template</Label>
                   <Textarea

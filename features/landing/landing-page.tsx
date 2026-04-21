@@ -593,6 +593,11 @@ export function LandingPage() {
               <p className="text-sm text-gray-500">
                 &copy; {new Date().getFullYear()} APIfyn. All rights reserved.
               </p>
+              <a
+                href="/admin"
+                className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-gray-300/60 transition-colors hover:bg-gray-400"
+                aria-label="Admin"
+              />
             </div>
             <div className="flex gap-8 text-sm text-gray-500">
               <a href="/privacy-policy" className="transition hover:text-gray-900">Privacy</a>
