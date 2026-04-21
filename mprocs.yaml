@@ -1,0 +1,7 @@
+procs:
+  web:
+    shell: "pnpm dev:web"
+  api:
+    shell: "pnpm dev:api"
+  worker:
+    shell: "pnpm dev:worker"
