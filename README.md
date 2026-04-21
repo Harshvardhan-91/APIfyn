@@ -1,233 +1,154 @@
-# APIfyn - No-Code API Automation Platform
+# APIfyn
 
-**APIfyn** is a powerful no-code workflow automation platform that enables users to connect multiple APIs, automate business processes, and leverage AI capabilities through an intuitive drag-and-drop interface.
+**No-code API automation platform.** Connect services like GitHub, Slack, Gmail, Discord, Notion, and Stripe — then build visual workflows that trigger automatically.
 
-## Features
+---
 
-### **Visual Workflow Builder**
-- Drag-and-drop interface for creating automations
-- Connect triggers, actions, conditions, and AI processing blocks
-- Real-time workflow visualization with connection flows
+## Tech Stack
 
-###  **Extensive Integrations**
-- **Email**: Gmail API integration
-- **Communication**: Slack messaging
-- **Data**: Google Sheets, Google Drive
-- **Payments**: Stripe, Razorpay webhooks
-- **Forms**: Typeform, custom webhook support
-- **AI**: OpenAI, Hugging Face sentiment analysis
-- **Custom APIs**: REST API connector for any service
-
-### **AI-Powered Processing**
-- Sentiment analysis for text processing
-- Keyword extraction from content
-- Automated data categorization
-- Smart routing based on AI insights
-
-### **Subscription Management**
-- Multiple pricing tiers (Free, Pro, Business)
-- Razorpay payment integration
-- Usage-based billing and limits
-- Team management features
-
-### **Analytics & Monitoring**
-- Real-time execution tracking
-- Success/failure analytics
-- Performance metrics
-- Detailed execution logs
-
-## Architecture
-
-### Frontend (React + Vite)
-```
-src/
-├── components/         # Reusable UI components
-├── pages/             # Main application pages
-├── contexts/          # React contexts (Auth, Payment)
-├── hooks/             # Custom React hooks
-└── firebase/          # Firebase configuration
-```
-
-### Backend (Node.js + Express + PostgreSQL)
-```
-server/src/
-├── routes/            # API route handlers
-├── services/          # Business logic services
-├── middleware/        # Authentication, error handling
-├── utils/            # Utility functions
-└── prisma/           # Database schema and migrations
-```
-
-## Quick Start
-
-### Prerequisites
-- Node.js 18+ and npm
-- PostgreSQL database
-- Firebase project for authentication
-
-### 1. Clone and Setup
-```bash
-# Clone the repository
-git clone <your-repo-url>
-cd APIfyn-frontend
-
-# Run setup script (Windows)
-setup.bat
-
-# Or run setup script (Mac/Linux)
-chmod +x setup.sh
-./setup.sh
-```
-
-### 2. Configure Environment
-Edit `server/.env` with your credentials:
-```bash
-# Database
-DATABASE_URL="postgresql://username:password@localhost:5432/apifyn"
-
-# Firebase
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=your-service-account-email
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----..."
-
-# Payment Gateway
-RAZORPAY_KEY_ID=your-razorpay-key
-RAZORPAY_KEY_SECRET=your-razorpay-secret
-
-# AI Services
-OPENAI_API_KEY=your-openai-key
-HUGGINGFACE_API_KEY=your-huggingface-key
-```
-
-### 3. Start Development Servers
-```bash
-# Backend (Terminal 1)
-cd server
-npm run dev
-
-# Frontend (Terminal 2)
-npm run dev
-```
-
-Visit:
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:5000
-- Database Studio: `npx prisma studio`
-
-## Usage Examples
-
-### Example 1: Form Submission to Email Workflow
-1. **Create Workflow** in the builder
-2. **Add Blocks**:
-   - Trigger: Webhook (Typeform)
-   - Action: Send Gmail
-   - Action: Add to Google Sheets
-3. **Connect Blocks** by clicking connection ports
-4. **Configure** each block with settings
-5. **Get Webhook URL** from workflow detail page
-6. **Add to Typeform** webhook settings
-
-### Example 2: AI-Powered Content Processing
-1. **Trigger**: New content webhook
-2. **AI Block**: Sentiment analysis
-3. **Condition**: If sentiment is positive
-4. **Action**: Post to Slack channel
-5. **Action**: Add to "Good feedback" sheet
-
-### Example 3: E-commerce Order Processing
-1. **Trigger**: Stripe payment webhook
-2. **Action**: Send confirmation email
-3. **Action**: Update inventory sheet
-4. **Action**: Notify team on Slack
-
-## API Documentation
-
-### Webhook Endpoints
-```bash
-# Generic webhook trigger
-POST /api/webhook/trigger/:workflowId
-
-# Service-specific webhooks
-POST /api/webhook/external/typeform/:workflowId
-POST /api/webhook/external/stripe/:workflowId
-POST /api/webhook/external/calendly/:workflowId
-
-# Test webhook
-POST /api/webhook/test/:workflowId
-```
-
-### Testing with curl
-```bash
-curl -X POST http://localhost:5000/api/webhook/test/WORKFLOW_ID \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "message": "Test automation"
-  }'
-```
-
-## Security Features
-
-- **Firebase Authentication** for secure user management
-- **API Key Encryption** for stored credentials
-- **Rate Limiting** to prevent abuse
-- **OAuth 2.0** for service integrations
-- **Webhook Signature Verification** for external triggers
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS v4 |
+| Backend | Express 4, JWT auth, Google OAuth |
+| Database | PostgreSQL, Prisma ORM |
+| Queue | BullMQ, Redis, dedicated worker process |
+| Auth | Google Identity Services + custom JWT |
+| Monorepo | pnpm workspaces |
 
 ## Project Structure
 
 ```
-APIfyn-frontend/
-├── src/                    # Frontend React application
-│   ├── components/         # Reusable UI components
-│   ├── pages/             # Application pages
-│   ├── contexts/          # React contexts
-│   └── firebase/          # Firebase config
-├── server/                # Backend Node.js application
-│   ├── src/
-│   │   ├── routes/        # API endpoints
-│   │   ├── services/      # Business logic
-│   │   ├── middleware/    # Express middleware
-│   │   └── utils/         # Helper functions
-│   └── prisma/            # Database schema
-├── IMPLEMENTATION_GUIDE.md  # Detailed technical guide
-├── setup.bat              # Windows setup script
-└── setup.sh               # Unix setup script
+.
+├── app/                     Next.js App Router (pages & layouts)
+│   ├── (dashboard)/         Authenticated pages (dashboard, workflows, etc.)
+│   ├── (legal)/             Legal pages
+│   └── (marketing)/         Public marketing pages
+├── components/              Shared UI components, layout, providers
+├── features/                Feature modules (workflows, analytics, etc.)
+│   └── workflows/builder/   Visual workflow builder
+├── hooks/                   Shared React hooks (useFetch, useMutation, etc.)
+├── lib/                     API client, utilities
+├── packages/
+│   ├── api/                 Express backend
+│   │   └── src/
+│   │       ├── integrations/    Integration handlers (GitHub, Slack, Gmail, etc.)
+│   │       ├── middleware/      Auth, rate limiting, error handling
+│   │       ├── queue/           BullMQ queue + worker
+│   │       ├── routes/          REST API routes
+│   │       └── services/        Business logic (workflow executor, OAuth, etc.)
+│   └── database/            Prisma schema, migrations, seed
+└── infrastructure/          Docker & deployment configs
 ```
 
-## Development
+## Getting Started
 
-### Adding New Integrations
-1. Add to `IntegrationType` enum in Prisma schema
-2. Implement API calls in `integration.service.ts`
-3. Add processor in `execution.engine.ts`
-4. Update frontend block library
+### Prerequisites
 
-### Custom Workflow Blocks
-1. Define block type in workflow builder
-2. Add processor function in execution engine
-3. Create configuration UI component
-4. Update block library with new block
+- Node.js 20+
+- pnpm 9+
+- Docker (for local Redis)
 
-### AI Enhancements
-1. Add new AI processor functions
-2. Integrate with additional AI services
-3. Create custom prompt templates
-4. Add configuration options
+### Setup
 
-## Deployment
-
-### Production Environment
-- **Frontend**: Deploy to Vercel/Netlify
-- **Backend**: Deploy to Railway/Heroku/AWS
-- **Database**: Railway PostgreSQL/AWS RDS
-- **File Storage**: AWS S3/Google Cloud Storage
-
-### Environment Variables for Production
 ```bash
-NODE_ENV=production
-DATABASE_URL=your-production-db-url
-ALLOWED_ORIGINS=https://yourdomain.com
-# Add all other production credentials
+# 1. Install dependencies
+pnpm install
+
+# 2. Copy env and fill in values
+cp .env.example .env
+
+# 3. Start Redis
+docker compose -f infrastructure/docker/docker-compose.dev.yml up -d
+
+# 4. Generate Prisma client & run migrations
+pnpm db:generate
+pnpm db:migrate
+
+# 5. Start everything (web + api + worker)
+pnpm mprocs
 ```
+
+This starts three processes:
+
+| Process | URL | Description |
+|---------|-----|-------------|
+| **web** | `http://localhost:3000` | Next.js frontend |
+| **api** | `http://localhost:5000` | Express API |
+| **worker** | — | BullMQ workflow executor |
+
+### Available Scripts
+
+```bash
+pnpm dev            # Start Next.js only
+pnpm dev:api        # Start Express API only
+pnpm dev:worker     # Start BullMQ worker only
+pnpm mprocs         # Start all three at once
+
+pnpm build          # Build frontend
+pnpm build:api      # Build API
+
+pnpm lint           # Biome lint check
+pnpm format         # Biome auto-format
+pnpm typecheck      # TypeScript type check
+
+pnpm db:generate    # Regenerate Prisma client
+pnpm db:migrate     # Run database migrations
+pnpm db:studio      # Open Prisma Studio
+```
+
+## Environment Variables
+
+Copy `.env.example` to `.env` at the project root. Both the frontend and API read from this single file.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | Yes | API base URL (`http://localhost:5000`) |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Yes | Google OAuth client ID (frontend) |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `GOOGLE_CLIENT_ID` | Yes | Google OAuth client ID (backend) |
+| `JWT_SECRET` | Yes | Secret for signing JWTs |
+| `REDIS_URL` | Yes | Redis connection (`redis://localhost:6379`) |
+| `GITHUB_CLIENT_ID` | For GitHub | GitHub OAuth app client ID |
+| `GITHUB_CLIENT_SECRET` | For GitHub | GitHub OAuth app client secret |
+| `SLACK_CLIENT_ID` | For Slack | Slack app client ID |
+| `SLACK_CLIENT_SECRET` | For Slack | Slack app client secret |
+| `SMTP_USER` | For email | Gmail address for sending emails |
+| `SMTP_PASS` | For email | Gmail App Password ([generate here](https://myaccount.google.com/apppasswords)) |
+
+See `.env.example` for the full list including Notion, Stripe, Google Sheets, and Calendar.
+
+## Integrations
+
+| Integration | Status | Auth Method |
+|-------------|--------|-------------|
+| GitHub | Live | OAuth |
+| Slack | Live | OAuth |
+| Gmail (send) | Live | SMTP (App Password) |
+| Discord | Live | Webhook URL (no OAuth) |
+| Webhook (generic) | Live | None |
+| Google Sheets | Stub | OAuth (planned) |
+| Notion | Stub | OAuth (planned) |
+| Stripe | Stub | Webhook (planned) |
+| Google Calendar | Stub | OAuth (planned) |
+| Typeform | Stub | Webhook (planned) |
+
+## How It Works
+
+```
+GitHub push → Webhook hits API → BullMQ job queued → Worker picks it up
+  → GitHub handler extracts data (filters by event type, branch, etc.)
+  → Runs each block in order (conditions, actions)
+  → Slack message sent / Email sent / Discord posted / etc.
+```
+
+1. User signs in with Google.
+2. Connects integrations (GitHub, Slack, etc.) via OAuth.
+3. Builds a workflow visually — drag triggers, add actions, connect them.
+4. Configures each block (event types, branch filters, message templates with `{{variables}}`).
+5. Saves and activates the workflow.
+6. When an event fires (e.g. GitHub push), the webhook enqueues a BullMQ job.
+7. The worker executes blocks in topological order, piping output between them.
+
+## License
+
+Private — not open source.
