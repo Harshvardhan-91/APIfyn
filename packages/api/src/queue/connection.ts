@@ -5,10 +5,16 @@ const logger = createLogger();
 
 const connections: IORedis[] = [];
 
-function buildRedisOptions(): RedisOptions {
+function getOpts(): RedisOptions {
   const url = process.env.REDIS_URL || "redis://localhost:6379";
   const useTls = url.startsWith("rediss://");
-  const opts: RedisOptions = { maxRetriesPerRequest: null };
+  const opts: RedisOptions = {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    retryStrategy(times: number) {
+      return Math.min(times * 200, 5000);
+    },
+  };
   if (useTls) {
     opts.tls = { rejectUnauthorized: false };
   }
@@ -17,16 +23,16 @@ function buildRedisOptions(): RedisOptions {
 
 export function getRedisConnection(): IORedis {
   const url = process.env.REDIS_URL || "redis://localhost:6379";
-  const conn = new IORedis(url, buildRedisOptions());
+  const conn = new IORedis(url, getOpts());
   conn.on("connect", () => logger.info("Redis connected"));
-  conn.on("error", (err) => logger.error("Redis error:", err));
+  conn.on("error", (err) => logger.error("Redis error: %s", err.message));
   connections.push(conn);
   return conn;
 }
 
 export async function closeRedis(): Promise<void> {
   for (const conn of connections) {
-    await conn.quit();
+    await conn.quit().catch(() => {});
   }
   connections.length = 0;
 }
