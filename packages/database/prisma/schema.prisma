@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Plan {
+  id             String        @id @default(cuid())
+  name           String        @unique
+  description    String
+  monthlyPrice   Float
+  yearlyPrice    Float
+  features       String[]
+  apiCallsLimit  Int
+  workflowsLimit Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("plans")
+}
+
+model User {
+  id            String              @id @default(cuid())
+  googleId      String              @unique
+  email         String              @unique
+  displayName   String?
+  photoURL      String?
+  emailVerified Boolean             @default(false)
+  firstName     String?
+  lastName      String?
+  company       String?
+  jobTitle      String?
+  apiCallsUsed  Int                 @default(0)
+  workflowsUsed Int                 @default(0)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  lastLoginAt   DateTime?
+  integrations  Integration[]
+  executions    WorkflowExecution[]
+  workflows     Workflow[]
+
+  @@map("users")
+}
+
+model Integration {
+  id             String          @id @default(cuid())
+  name           String          // e.g. "My GitHub Repo" or "Slack Workspace"
+  type           IntegrationType // GITHUB / SLACK
+  config         Json            // stores repo/channel IDs, webhook secret etc.
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("integrations")
+}
+
+model Workflow {
+  id             String              @id @default(cuid())
+  name           String
+  description    String?
+  definition     Json                // Workflow definition (blocks, connections, etc.)
+  isActive       Boolean             @default(true)
+  isPublic       Boolean             @default(false)
+  triggerType    TriggerType         // WEBHOOK for GitHub push
+  status         WorkflowStatus      @default(DRAFT)
+  category       String?
+  tags           String[]
+  totalRuns      Int                 @default(0)
+  lastRunAt      DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  userId         String
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  executions     WorkflowExecution[]
+
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id            String          @id @default(cuid())
+  status        ExecutionStatus
+  startedAt     DateTime        @default(now())
+  completedAt   DateTime?
+  inputData     Json?           @map("input")
+  outputData    Json?           @map("output")
+  errorMessage  String?         @map("error")
+  duration      Int?
+  workflowId    String
+  userId        String
+  workflow      Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_executions")
+}
+
+enum TriggerType {
+  WEBHOOK
+  MANUAL
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  FAILED
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum IntegrationType {
+  GMAIL
+  SLACK
+  NOTION
+  DISCORD
+  GOOGLE_SHEETS
+  AIRTABLE
+  SALESFORCE
+  HUBSPOT
+  WEBHOOK
+  REST_API
+  GRAPHQL
+  DATABASE
+  FTP
+  SFTP
+  AWS_S3
+  DROPBOX
+  GOOGLE_DRIVE
+  CUSTOM
+  GITHUB
+}
