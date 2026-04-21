@@ -11,7 +11,6 @@ import {
   TypeformIcon,
 } from "@/components/icons/brand-icons";
 import { useAuth } from "@/components/providers/auth-provider";
-import { Button } from "@/components/ui/button";
 import { useFetch } from "@/hooks/use-fetch";
 import { apiFetch } from "@/lib/api/client";
 import type { ApiResult, IntegrationStatus } from "@/lib/api/types";
@@ -22,7 +21,6 @@ import {
   Loader2,
   Plug,
   RefreshCw,
-  Shield,
   Unplug,
   Zap,
 } from "lucide-react";
@@ -36,7 +34,7 @@ type ProviderConfig = {
   bg: string;
   text: string;
   ring: string;
-  available: boolean;
+  connectType: "oauth" | "config";
   docsUrl?: string;
   authMethod: string;
 };
@@ -50,7 +48,7 @@ const providers: ProviderConfig[] = [
     bg: "bg-[#24292f]",
     text: "text-white",
     ring: "ring-gray-900/20",
-    available: true,
+    connectType: "oauth",
     docsUrl: "https://docs.github.com/en/webhooks",
     authMethod: "OAuth",
   },
@@ -62,7 +60,7 @@ const providers: ProviderConfig[] = [
     bg: "bg-[#4A154B]",
     text: "text-white",
     ring: "ring-purple-900/20",
-    available: true,
+    connectType: "oauth",
     docsUrl: "https://api.slack.com",
     authMethod: "OAuth",
   },
@@ -74,7 +72,7 @@ const providers: ProviderConfig[] = [
     bg: "bg-[#5865F2]",
     text: "text-white",
     ring: "ring-indigo-500/20",
-    available: false,
+    connectType: "config",
     authMethod: "Webhook URL",
   },
   {
@@ -85,7 +83,7 @@ const providers: ProviderConfig[] = [
     bg: "bg-red-50",
     text: "text-red-600",
     ring: "ring-red-500/20",
-    available: false,
+    connectType: "config",
     authMethod: "SMTP",
   },
   {
@@ -96,8 +94,8 @@ const providers: ProviderConfig[] = [
     bg: "bg-black",
     text: "text-white",
     ring: "ring-gray-900/20",
-    available: false,
-    authMethod: "OAuth",
+    connectType: "config",
+    authMethod: "API Key",
   },
   {
     id: "sheets",
@@ -107,8 +105,8 @@ const providers: ProviderConfig[] = [
     bg: "bg-green-50",
     text: "text-green-700",
     ring: "ring-green-500/20",
-    available: false,
-    authMethod: "OAuth",
+    connectType: "config",
+    authMethod: "API Key",
   },
   {
     id: "stripe",
@@ -118,7 +116,7 @@ const providers: ProviderConfig[] = [
     bg: "bg-[#635BFF]",
     text: "text-white",
     ring: "ring-violet-500/20",
-    available: false,
+    connectType: "config",
     authMethod: "Webhook",
   },
   {
@@ -129,7 +127,7 @@ const providers: ProviderConfig[] = [
     bg: "bg-[#262627]",
     text: "text-white",
     ring: "ring-gray-900/20",
-    available: false,
+    connectType: "config",
     authMethod: "Webhook",
   },
 ];
@@ -177,8 +175,6 @@ export function IntegrationsPage() {
     }
   }
 
-  const liveCount = providers.filter((p) => p.available).length;
-  const totalCount = providers.length;
   const connectedCount = data
     ? Object.values(data.integrations ?? {}).filter((v) => v?.connected).length
     : 0;
@@ -198,7 +194,7 @@ export function IntegrationsPage() {
               </h1>
             </div>
             <p className="text-sm text-gray-500">
-              Connect the services your workflows depend on. {liveCount} of {totalCount} available, {connectedCount} connected.
+              Connect the services your workflows depend on. {providers.length} integrations supported{connectedCount > 0 ? `, ${connectedCount} connected` : ""}.
             </p>
           </div>
           <button
@@ -211,23 +207,12 @@ export function IntegrationsPage() {
           </button>
         </div>
 
-        {/* Connected banner */}
-        {connectedCount > 0 && (
-          <div className="mb-8 flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 px-5 py-3.5">
-            <Shield className="h-5 w-5 text-emerald-600 shrink-0" />
-            <p className="text-sm text-emerald-800">
-              <span className="font-semibold">{connectedCount} integration{connectedCount > 1 ? "s" : ""} connected</span>
-              {" "}— OAuth tokens are encrypted and stored securely. You can revoke access at any time.
-            </p>
-          </div>
-        )}
-
         {/* Grid */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {providers.map((provider) => {
-            const isConnectable = provider.id === "github" || provider.id === "slack";
+            const isOAuth = provider.connectType === "oauth";
             const connected = Boolean(
-              isConnectable &&
+              isOAuth &&
                 data?.integrations?.[provider.id as keyof IntegrationStatus]?.connected,
             );
             const isActionLoading = loadingProvider === provider.id;
@@ -238,12 +223,9 @@ export function IntegrationsPage() {
                 className={`group relative rounded-2xl border bg-white p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${
                   connected
                     ? "border-emerald-200 shadow-sm shadow-emerald-100/50"
-                    : provider.available
-                      ? "border-gray-150 hover:border-gray-300"
-                      : "border-gray-100"
+                    : "border-gray-150 hover:border-gray-300"
                 }`}
               >
-                {/* Connected indicator */}
                 {connected && (
                   <div className="absolute -top-2 right-4">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
@@ -267,11 +249,7 @@ export function IntegrationsPage() {
                       <h2 className="text-sm font-semibold text-gray-900">
                         {provider.name}
                       </h2>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        provider.available
-                          ? "bg-blue-50 text-blue-700"
-                          : "bg-gray-100 text-gray-500"
-                      }`}>
+                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
                         {provider.authMethod}
                       </span>
                     </div>
@@ -288,15 +266,15 @@ export function IntegrationsPage() {
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                         <span className="text-xs font-medium text-emerald-700">Active</span>
                       </>
-                    ) : provider.available ? (
+                    ) : isOAuth ? (
                       <>
                         <AlertCircle className="h-3.5 w-3.5 text-gray-300" />
                         <span className="text-xs text-gray-400">Not connected</span>
                       </>
                     ) : (
                       <>
-                        <Clock className="h-3.5 w-3.5 text-gray-300" />
-                        <span className="text-xs text-gray-400">Coming soon</span>
+                        <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" />
+                        <span className="text-xs text-gray-500">Available</span>
                       </>
                     )}
                   </div>
@@ -313,7 +291,7 @@ export function IntegrationsPage() {
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     )}
-                    {provider.available ? (
+                    {isOAuth ? (
                       connected ? (
                         <button
                           type="button"
@@ -344,8 +322,8 @@ export function IntegrationsPage() {
                         </button>
                       )
                     ) : (
-                      <span className="rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400">
-                        Coming soon
+                      <span className="rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500">
+                        Configure in builder
                       </span>
                     )}
                   </div>
@@ -356,14 +334,5 @@ export function IntegrationsPage() {
         </div>
       </div>
     </main>
-  );
-}
-
-function Clock({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
   );
 }
