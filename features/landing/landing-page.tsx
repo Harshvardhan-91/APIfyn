@@ -258,9 +258,7 @@ export function LandingPage() {
               <h1 className="text-5xl font-bold leading-[1.08] tracking-tight text-gray-900 lg:text-[3.5rem]">
                 Automate your APIs.
                 <br />
-                <span className="bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent">
-                  Ship 10x faster.
-                </span>
+                Ship faster.
               </h1>
               <p className="mt-6 max-w-lg text-lg leading-relaxed text-gray-600">
                 Connect GitHub, Slack, Gmail, Discord, and more with a visual
