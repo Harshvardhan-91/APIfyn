@@ -1,4 +1,5 @@
 import "./load-env";
+import "./integrations/handlers/register";
 import { PrismaClient } from "@prisma/client";
 import compression from "compression";
 import cors from "cors";
@@ -12,7 +13,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { prisma } from "./db";
 import { errorHandler } from "./middleware/errorHandler";
-// Import routes
+import { createWorkflowWorker } from "./queue/worker";
 import adminRoutes from "./routes/admin";
 import authRoutes from "./routes/auth";
 import integrationRoutes from "./routes/integration";
@@ -258,13 +259,14 @@ const startServer = async (): Promise<void> => {
     await initializeDatabase();
 
     app.listen(PORT, () => {
-      logger.info(`🚀 FlowAPI Server running on port ${PORT}`);
-      logger.info(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-      logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
-      logger.info(`📖 API docs: http://localhost:${PORT}/api/docs`);
+      logger.info(`Server running on port ${PORT}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || "development"}`);
+      logger.info(`Health check: http://localhost:${PORT}/api/health`);
 
-      // Start keep-alive service to prevent server from sleeping
       KeepAliveService.start();
+
+      const worker = createWorkflowWorker();
+      logger.info("BullMQ worker started in-process");
     });
   } catch (error) {
     logger.error("Failed to start server:", error);
