@@ -5,10 +5,14 @@ import {
   GitHubIcon,
   GmailIcon,
   GoogleSheetsIcon,
+  MSG91Icon,
   NotionIcon,
+  OpenAIIcon,
+  RazorpayIcon,
   SlackIcon,
   StripeIcon,
   TypeformIcon,
+  WebhookIcon,
 } from "@/components/icons/brand-icons";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useFetch } from "@/hooks/use-fetch";
@@ -24,6 +28,7 @@ import {
   Unplug,
   Zap,
 } from "lucide-react";
+import Link from "next/link";
 import { type ComponentType, useEffect, useRef, useState } from "react";
 
 type ProviderConfig = {
@@ -38,6 +43,11 @@ type ProviderConfig = {
   statusKey?: keyof IntegrationStatus;
   docsUrl?: string;
   authMethod: string;
+  /** Replaces the generic "Configure in builder" label for config-only providers */
+  configureHint: string;
+  /** Optional secondary action (e.g. OpenAI key in Settings) */
+  settingsHref?: string;
+  settingsLabel?: string;
 };
 
 const providers: ProviderConfig[] = [
@@ -54,6 +64,7 @@ const providers: ProviderConfig[] = [
     statusKey: "github",
     docsUrl: "https://docs.github.com/en/webhooks",
     authMethod: "OAuth",
+    configureHint: "",
   },
   {
     id: "slack",
@@ -68,6 +79,7 @@ const providers: ProviderConfig[] = [
     statusKey: "slack",
     docsUrl: "https://api.slack.com",
     authMethod: "OAuth",
+    configureHint: "",
   },
   {
     id: "notion",
@@ -81,6 +93,7 @@ const providers: ProviderConfig[] = [
     connectType: "oauth",
     statusKey: "notion",
     authMethod: "OAuth",
+    configureHint: "",
   },
   {
     id: "google",
@@ -94,6 +107,23 @@ const providers: ProviderConfig[] = [
     connectType: "oauth",
     statusKey: "google",
     authMethod: "OAuth",
+    configureHint: "",
+  },
+  {
+    id: "openai",
+    name: "OpenAI",
+    description:
+      "Run GPT steps in workflows. Set a default key in Settings or a per-workflow key in the block. Encrypted at rest.",
+    icon: OpenAIIcon,
+    bg: "bg-[#10A37F]",
+    text: "text-white",
+    ring: "ring-emerald-500/20",
+    connectType: "config",
+    authMethod: "API key",
+    configureHint: "Add key in Settings or the OpenAI block",
+    settingsHref: "/settings",
+    settingsLabel: "Open settings",
+    docsUrl: "https://platform.openai.com/docs",
   },
   {
     id: "discord",
@@ -105,31 +135,49 @@ const providers: ProviderConfig[] = [
     text: "text-white",
     ring: "ring-indigo-500/20",
     connectType: "config",
-    authMethod: "Webhook URL",
+    authMethod: "Webhook",
+    configureHint: "Paste channel webhook URL in the block",
   },
   {
     id: "gmail",
-    name: "Gmail",
+    name: "Gmail / email",
     description:
-      "Send branded HTML emails with dynamic template variables. Professional formatting built-in.",
+      "Send branded HTML emails with dynamic template variables. Uses SMTP (e.g. Google App Password) from server env.",
     icon: GmailIcon,
     bg: "bg-red-50",
     text: "text-red-600",
     ring: "ring-red-500/20",
     connectType: "config",
     authMethod: "SMTP",
+    configureHint: "Set SMTP in server environment",
   },
   {
     id: "stripe",
     name: "Stripe",
     description:
-      "Listen for payments, subscriptions, refunds, and billing events in real time.",
+      "Listen for payments, subscriptions, refunds, and billing events. Register your workflow webhook in Stripe.",
     icon: StripeIcon,
     bg: "bg-[#635BFF]",
     text: "text-white",
     ring: "ring-violet-500/20",
     connectType: "config",
     authMethod: "Webhook",
+    configureHint: "Add webhook URL from workflow block in Stripe",
+    docsUrl: "https://docs.stripe.com/webhooks",
+  },
+  {
+    id: "razorpay",
+    name: "Razorpay",
+    description:
+      "India payments: trigger flows on payment.captured, refunds, and subscriptions. HMAC signature verified.",
+    icon: RazorpayIcon,
+    bg: "bg-[#0C2451]",
+    text: "text-[#3395FF]",
+    ring: "ring-blue-900/20",
+    connectType: "config",
+    authMethod: "Webhook",
+    configureHint: "Register workflow URL in Razorpay webhooks",
+    docsUrl: "https://razorpay.com/docs/webhooks",
   },
   {
     id: "typeform",
@@ -142,6 +190,35 @@ const providers: ProviderConfig[] = [
     ring: "ring-gray-900/20",
     connectType: "config",
     authMethod: "Webhook",
+    configureHint: "Paste the workflow webhook URL in Typeform",
+    docsUrl: "https://www.typeform.com/developers/webhooks",
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp (MSG91)",
+    description:
+      "Send approved WhatsApp template messages via MSG91. Set MSG91_ keys in server env, template ID in the block.",
+    icon: MSG91Icon,
+    bg: "bg-[#FF6B35]",
+    text: "text-white",
+    ring: "ring-orange-500/20",
+    connectType: "config",
+    authMethod: "MSG91 + env",
+    configureHint: "MSG91 template + phone in the block; keys in .env",
+    docsUrl: "https://msg91.com/whatsapp",
+  },
+  {
+    id: "webhook",
+    name: "HTTP webhooks",
+    description:
+      "Start workflows with inbound POSTs or call external APIs (GET/POST) from a Send Webhook block.",
+    icon: WebhookIcon,
+    bg: "bg-blue-50",
+    text: "text-blue-600",
+    ring: "ring-blue-500/20",
+    connectType: "config",
+    authMethod: "Per workflow",
+    configureHint: "URL shown in Webhook & Send Webhook blocks",
   },
 ];
 
@@ -220,7 +297,7 @@ export function IntegrationsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50/50">
-      <div className="mx-auto max-w-7xl px-4 pb-12 pt-24 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 pb-12 pt-20 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -366,9 +443,19 @@ export function IntegrationsPage() {
                         </button>
                       )
                     ) : (
-                      <span className="rounded-lg bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500">
-                        Configure in builder
-                      </span>
+                      <div className="flex max-w-[14rem] flex-col items-end gap-1.5 text-right">
+                        <span className="text-[10px] leading-snug text-gray-500">
+                          {provider.configureHint || "Configure in builder"}
+                        </span>
+                        {provider.settingsHref && provider.settingsLabel ? (
+                          <Link
+                            href={provider.settingsHref}
+                            className="text-xs font-medium text-gray-900 underline decoration-gray-300 underline-offset-2 hover:decoration-gray-600"
+                          >
+                            {provider.settingsLabel}
+                          </Link>
+                        ) : null}
+                      </div>
                     )}
                   </div>
                 </div>
