@@ -43,6 +43,8 @@ model User {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
   lastLoginAt      DateTime?
+  /// AES-GCM–encrypted OpenAI API key (optional default for `openai-action` blocks)
+  openaiKeyEnc     String?
   integrations     Integration[]
   executions       WorkflowExecution[]
   workflows        Workflow[]
