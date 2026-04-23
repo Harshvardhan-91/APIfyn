@@ -13,45 +13,53 @@ import { useState } from "react";
 const plans = [
   {
     slug: "starter",
-    name: "Starter",
+    name: "Free",
     price: "$0",
-    description: "Perfect for trying out APIfyn.",
+    period: "",
+    description: "Get started with workflow automation.",
     features: [
-      "100 API calls / month",
-      "2 workflows",
-      "GitHub & Slack integrations",
+      "500 workflow runs / month",
+      "5 workflows",
+      "Core integrations (GitHub, Slack, Discord)",
+      "AI workflow builder (10 / month)",
       "Community support",
     ],
     highlighted: false,
+    cta: "Start Free",
   },
   {
     slug: "professional",
-    name: "Professional",
-    price: "$20",
-    description: "For growing teams that need more power.",
+    name: "Pro",
+    price: "$15",
+    period: "/mo",
+    description: "For teams that automate daily.",
     features: [
-      "10,000 API calls / month",
-      "20 workflows",
+      "10,000 workflow runs / month",
+      "25 workflows",
       "All integrations",
+      "AI workflow builder (50 / month)",
       "Priority support",
-      "Execution logs",
+      "Execution logs & analytics",
     ],
     highlighted: true,
+    cta: "Upgrade to Pro",
   },
   {
     slug: "enterprise",
-    name: "Enterprise",
-    price: "$30",
-    description: "For organizations with advanced needs.",
+    name: "Business",
+    price: "$49",
+    period: "/mo",
+    description: "For growing businesses with complex workflows.",
     features: [
-      "Unlimited API calls",
+      "50,000 workflow runs / month",
       "Unlimited workflows",
-      "Custom integrations",
-      "SLA guarantee",
-      "Dedicated support",
-      "SSO & SAML",
+      "All integrations + priority access",
+      "AI workflow builder (200 / month)",
+      "Advanced analytics",
+      "Priority support",
     ],
     highlighted: false,
+    cta: "Upgrade to Business",
   },
 ];
 
@@ -82,11 +90,10 @@ export function PricingPage() {
     }
   }
 
-  function getButtonLabel(slug: string) {
-    if (!user) return slug === "starter" ? "Start Free" : "Get Started";
-    if (currentPlan?.slug === slug) return "Current Plan";
-    if (slug === "starter") return "Start Free";
-    return "Upgrade";
+  function getButtonLabel(plan: (typeof plans)[number]) {
+    if (!user) return plan.slug === "starter" ? "Start Free" : "Get Started";
+    if (currentPlan?.slug === plan.slug) return "Current Plan";
+    return plan.cta;
   }
 
   return (
@@ -97,11 +104,11 @@ export function PricingPage() {
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
             Simple, transparent pricing
           </h1>
-          <p className="mx-auto mt-4 max-w-lg text-lg text-gray-600">
-            Start free. Upgrade when you need more power.
+          <p className="mx-auto mt-4 max-w-lg text-lg text-gray-500">
+            Start free. Upgrade when you need more power. No surprises.
           </p>
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
           {plans.map((p) => {
             const isCurrent = currentPlan?.slug === p.slug;
             const busy = isLoading && loadingSlug === p.slug;
@@ -135,15 +142,17 @@ export function PricingPage() {
                     <span className="text-4xl font-bold tracking-tight text-gray-900">
                       {p.price}
                     </span>
-                    <span className="text-sm text-gray-500">/mo</span>
+                    {p.period && (
+                      <span className="text-sm text-gray-500">{p.period}</span>
+                    )}
                   </p>
                   <div className="mt-6 space-y-3">
                     {p.features.map((feature) => (
                       <div
                         key={feature}
-                        className="flex items-center gap-2 text-sm text-gray-600"
+                        className="flex items-start gap-2 text-sm text-gray-600"
                       >
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                         {feature}
                       </div>
                     ))}
@@ -157,12 +166,22 @@ export function PricingPage() {
                     {busy ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : null}
-                    {getButtonLabel(p.slug)}
+                    {getButtonLabel(p)}
                   </Button>
                 </CardContent>
               </Card>
             );
           })}
+        </div>
+
+        <div className="mx-auto mt-12 max-w-2xl text-center">
+          <p className="text-sm text-gray-400">
+            Need custom limits, SLA, or SSO?{" "}
+            <a href="/contact-us" className="text-gray-600 underline underline-offset-2 transition hover:text-gray-900">
+              Contact us
+            </a>{" "}
+            for Enterprise pricing.
+          </p>
         </div>
       </section>
     </main>
