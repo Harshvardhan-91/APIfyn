@@ -4,10 +4,13 @@ import {
   GmailIcon,
   GoogleSheetsIcon,
   NotionIcon,
+  OpenAIIcon,
+  RazorpayIcon,
   SlackIcon,
   StripeIcon,
   TypeformIcon,
   WebhookIcon,
+  WhatsAppIcon,
 } from "@/components/icons/brand-icons";
 import { Clock, Code, Database, Filter, GitBranch, Zap } from "lucide-react";
 import type { BuilderBlockDefinition } from "./types";
@@ -36,6 +39,14 @@ export const triggerBlocks: BuilderBlockDefinition[] = [
     category: "Forms",
     integrationRequired: false,
     icon: TypeformIcon,
+  },
+  {
+    id: "razorpay-trigger",
+    name: "Razorpay Payment",
+    description: "Triggered by Razorpay payment and subscription events.",
+    category: "Payments",
+    integrationRequired: false,
+    icon: RazorpayIcon,
   },
   {
     id: "webhook-trigger",
@@ -95,6 +106,23 @@ export const actionBlocks: BuilderBlockDefinition[] = [
     category: "Communication",
     integrationRequired: true,
     icon: DiscordIcon,
+  },
+  {
+    id: "whatsapp-send",
+    name: "Send WhatsApp Message",
+    description: "Send a WhatsApp template message via MSG91.",
+    category: "Communication",
+    integrationRequired: false,
+    icon: WhatsAppIcon,
+  },
+  {
+    id: "openai-action",
+    name: "OpenAI",
+    description:
+      "Run a chat completion; uses your key from Settings or a per-workflow key.",
+    category: "AI",
+    integrationRequired: false,
+    icon: OpenAIIcon,
   },
 ];
 
