@@ -3,67 +3,17 @@
 import { AppIcon } from "@/components/icons/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { templateDefinitions } from "@/lib/templates/definitions";
 import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-
-const templates = [
-  {
-    id: "github-slack-template",
-    name: "GitHub to Slack",
-    description:
-      "Get instant Slack notifications when code is pushed to your repositories.",
-    apps: ["github", "slack"],
-    category: "Developer",
-  },
-  {
-    id: "stripe-notion-template",
-    name: "Stripe to Notion",
-    description:
-      "Automatically log every payment event as a page in your Notion database.",
-    apps: ["stripe", "notion"],
-    category: "Finance",
-  },
-  {
-    id: "gmail-sheets-template",
-    name: "Gmail to Sheets",
-    description:
-      "Parse incoming emails and append structured data to Google Sheets.",
-    apps: ["gmail", "sheets"],
-    category: "Productivity",
-  },
-  {
-    id: "github-discord-template",
-    name: "GitHub to Discord",
-    description:
-      "Post real-time commit and PR updates to your Discord server channels.",
-    apps: ["github", "discord"],
-    category: "Developer",
-  },
-  {
-    id: "typeform-slack-template",
-    name: "Typeform to Slack",
-    description:
-      "Notify your team on Slack whenever a new Typeform response is submitted.",
-    apps: ["typeform", "slack"],
-    category: "Forms",
-  },
-  {
-    id: "stripe-gmail-template",
-    name: "Stripe to Gmail",
-    description:
-      "Send a custom follow-up email after every successful Stripe payment.",
-    apps: ["stripe", "gmail"],
-    category: "Finance",
-  },
-];
 
 export function TemplatesPage() {
   const router = useRouter();
   return (
     <main className="min-h-screen bg-gray-50/50">
-      <div className="mx-auto max-w-7xl px-4 pb-8 pt-24 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 pb-8 pt-20 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+          <h1 className="text-xl font-semibold tracking-tight text-gray-900">
             Templates
           </h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -71,7 +21,7 @@ export function TemplatesPage() {
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {templates.map((template) => (
+          {templateDefinitions.map((template) => (
             <Card key={template.id} className="group">
               <CardContent>
                 <div className="mb-1">
@@ -90,8 +40,13 @@ export function TemplatesPage() {
                 <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
                   {template.description}
                 </p>
+                <div className="mt-3 flex items-center gap-2 text-[11px] text-gray-400">
+                  <span>{template.blocks.length} blocks</span>
+                  <span>&middot;</span>
+                  <span>{template.connections.length} connections</span>
+                </div>
                 <Button
-                  className="mt-5 w-full"
+                  className="mt-4 w-full"
                   variant="secondary"
                   onClick={() =>
                     router.push(`/workflows/create?template=${template.id}`)
