@@ -22,7 +22,6 @@ import {
   Layers,
   Link2,
   Plus,
-  Settings,
   TrendingUp,
   Workflow,
 } from "lucide-react";
@@ -84,34 +83,21 @@ export function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-gray-50/50">
-      <div className="mx-auto max-w-7xl px-4 pb-8 pt-24 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 pb-8 pt-20 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            <h1 className="text-xl font-semibold tracking-tight text-gray-900">
               Welcome back, {firstName}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              You have{" "}
-              <span className="font-medium text-gray-900">
-                {dashboard?.totalWorkflows ?? 0} workflows
-              </span>{" "}
-              running
+              {dashboard?.totalWorkflows ?? 0} workflows running
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              className="px-3"
-              onClick={() => router.push("/settings")}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-            <Button onClick={() => router.push("/workflows/create")}>
-              <Plus className="h-4 w-4" />
-              Create Workflow
-            </Button>
-          </div>
+          <Button onClick={() => router.push("/workflows/create")}>
+            <Plus className="h-4 w-4" />
+            New Workflow
+          </Button>
         </div>
 
         {/* Stats */}
@@ -121,44 +107,32 @@ export function DashboardPage() {
               label: "Active Workflows",
               value: dashboard?.totalWorkflows ?? 0,
               icon: Workflow,
-              bg: "bg-blue-50",
-              iconColor: "text-blue-600",
             },
             {
               label: "Executions Today",
               value: dashboard?.executionsToday ?? 0,
               icon: CheckCircle,
-              bg: "bg-emerald-50",
-              iconColor: "text-emerald-600",
             },
             {
               label: "Connected Apps",
               value: dashboard?.connectedApps ?? 0,
               icon: Layers,
-              bg: "bg-purple-50",
-              iconColor: "text-purple-600",
             },
             {
               label: "This Week",
               value: dashboard?.thisWeek ?? 0,
               icon: BarChart3,
-              bg: "bg-amber-50",
-              iconColor: "text-amber-600",
             },
           ].map((stat) => (
-            <Card key={stat.label} className="hover:shadow-sm">
-              <CardContent className="flex items-center gap-4">
-                <span
-                  className={`flex h-11 w-11 items-center justify-center rounded-2xl ${stat.bg}`}
-                >
-                  <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
-                </span>
+            <Card key={stat.label}>
+              <CardContent className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold tracking-tight text-gray-900">
+                  <p className="text-2xl font-semibold tracking-tight text-gray-900">
                     {stat.value}
                   </p>
                   <p className="text-xs text-gray-500">{stat.label}</p>
                 </div>
+                <stat.icon className="h-5 w-5 text-gray-300" />
               </CardContent>
             </Card>
           ))}
@@ -166,23 +140,24 @@ export function DashboardPage() {
 
         {/* Plan card */}
         {dashboard?.plan ? (
-          <Card className="mb-6 border-gray-200/60 bg-gradient-to-r from-gray-50 to-white">
+          <Card className="mb-6">
             <CardContent>
               <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                 <div>
-                  <h2 className="text-base font-semibold text-gray-900">
+                  <h2 className="text-sm font-semibold text-gray-900">
                     {dashboard.plan.name} Plan
                   </h2>
                   <p className="mt-0.5 text-xs text-gray-500">
                     {dashboard.plan.subscriptionStatus === "active" &&
                     dashboard.plan.subscriptionEndDate
                       ? `Active until ${new Date(dashboard.plan.subscriptionEndDate).toLocaleDateString()}`
-                      : "Free plan with limited features"}
+                      : "Free plan — upgrade for more capacity"}
                   </p>
                 </div>
                 {dashboard.plan.type === "FREE" ? (
                   <Button
                     variant="secondary"
+                    className="text-xs"
                     onClick={() => router.push("/pricing")}
                   >
                     Upgrade
@@ -199,7 +174,7 @@ export function DashboardPage() {
                     percent: workflowUsage,
                   },
                   {
-                    label: "API Calls",
+                    label: "Executions",
                     used: dashboard.plan.apiCallsUsed,
                     limit: dashboard.plan.apiCallsLimit,
                     percent: apiUsage,
@@ -207,7 +182,7 @@ export function DashboardPage() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-xl bg-white p-4 border border-gray-100"
+                    className="rounded-lg bg-gray-50 p-3 border border-gray-100"
                   >
                     <div className="mb-2 flex justify-between text-xs">
                       <span className="font-medium text-gray-600">
@@ -218,7 +193,7 @@ export function DashboardPage() {
                         {item.limit >= 999999 ? "\u221e" : item.limit}
                       </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-gray-100">
+                    <div className="h-1.5 rounded-full bg-gray-200">
                       <div
                         className={`h-1.5 rounded-full transition-all ${usageColor(item.percent)}`}
                         style={{ width: `${item.percent}%` }}
@@ -232,16 +207,13 @@ export function DashboardPage() {
         ) : null}
 
         {/* Activity + Sidebar */}
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
           <div className="space-y-6">
             <Card>
               <CardHeader className="flex-row items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-gray-500" />
-                  <h2 className="text-sm font-semibold text-gray-900">
-                    Recent Activity
-                  </h2>
-                </div>
+                <h2 className="text-sm font-semibold text-gray-900">
+                  Recent Activity
+                </h2>
                 <Button
                   variant="ghost"
                   className="text-xs"
@@ -256,7 +228,7 @@ export function DashboardPage() {
                     {dashboard.recentActivity.map((activity) => (
                       <div
                         key={activity.id}
-                        className="flex items-center gap-3 rounded-xl p-3 transition hover:bg-gray-50"
+                        className="flex items-center gap-3 rounded-lg p-3 transition hover:bg-gray-50"
                       >
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100">
                           {activity.status === "failed" ? (
@@ -268,7 +240,7 @@ export function DashboardPage() {
                           )}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-gray-900">
+                          <p className="truncate text-sm text-gray-900">
                             {activity.name ??
                               activity.description ??
                               "Workflow activity"}
@@ -276,10 +248,7 @@ export function DashboardPage() {
                           <p className="text-xs text-gray-400">
                             {new Date(activity.timestamp).toLocaleTimeString(
                               [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
+                              { hour: "2-digit", minute: "2-digit" },
                             )}
                           </p>
                         </div>
@@ -299,14 +268,12 @@ export function DashboardPage() {
                   </div>
                 ) : (
                   <div className="flex min-h-40 flex-col items-center justify-center text-center">
-                    <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100">
-                      <Activity className="h-5 w-5 text-gray-400" />
-                    </span>
-                    <h3 className="text-sm font-semibold text-gray-900">
+                    <Activity className="mb-3 h-6 w-6 text-gray-300" />
+                    <h3 className="text-sm font-medium text-gray-900">
                       No activity yet
                     </h3>
                     <p className="mt-1 max-w-xs text-xs text-gray-500">
-                      Create a workflow and trigger it to see activity here.
+                      Create and run a workflow to see activity here.
                     </p>
                   </div>
                 )}
@@ -314,46 +281,36 @@ export function DashboardPage() {
             </Card>
 
             {/* Quick actions */}
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-3">
               {[
                 {
                   title: "New Workflow",
                   desc: "Build from scratch",
                   icon: Plus,
-                  bg: "bg-blue-50",
-                  iconColor: "text-blue-600",
                   href: "/workflows/create",
                 },
                 {
                   title: "Templates",
                   desc: "Start from a template",
                   icon: Layers,
-                  bg: "bg-purple-50",
-                  iconColor: "text-purple-600",
                   href: "/templates",
                 },
                 {
                   title: "Connect App",
                   desc: "Add an integration",
                   icon: Link2,
-                  bg: "bg-emerald-50",
-                  iconColor: "text-emerald-600",
                   href: "/integrations",
                 },
               ].map((action) => (
                 <button
                   key={action.title}
                   type="button"
-                  className="group flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 text-left transition hover:border-gray-300 hover:shadow-sm active:scale-[0.98]"
+                  className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 text-left transition hover:border-gray-300 hover:shadow-sm active:scale-[0.98]"
                   onClick={() => router.push(action.href)}
                 >
-                  <span
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${action.bg}`}
-                  >
-                    <action.icon className={`h-5 w-5 ${action.iconColor}`} />
-                  </span>
+                  <action.icon className="h-5 w-5 shrink-0 text-gray-400 transition group-hover:text-gray-600" />
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-sm font-medium text-gray-900">
                       {action.title}
                     </p>
                     <p className="text-xs text-gray-500">{action.desc}</p>
@@ -366,7 +323,7 @@ export function DashboardPage() {
           <div className="space-y-6">
             <Card>
               <CardHeader className="flex-row items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-gray-500" />
+                <TrendingUp className="h-4 w-4 text-gray-400" />
                 <h2 className="text-sm font-semibold text-gray-900">
                   Performance
                 </h2>
@@ -402,29 +359,25 @@ export function DashboardPage() {
                   Manage
                 </Button>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-1">
                 {connectedApps.map((app) => (
                   <div
                     key={app.name}
-                    className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-gray-50"
+                    className="flex items-center gap-3 rounded-lg p-2 transition hover:bg-gray-50"
                   >
                     <span
-                      className={`flex h-8 w-8 items-center justify-center rounded-xl ${app.bg} border border-black/5`}
+                      className={`flex h-7 w-7 items-center justify-center rounded-lg ${app.bg} border border-black/5`}
                     >
-                      <app.icon className={`h-4 w-4 ${app.text}`} />
+                      <app.icon className={`h-3.5 w-3.5 ${app.text}`} />
                     </span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        {app.name}
-                      </p>
-                    </div>
+                    <p className="flex-1 text-sm text-gray-700">{app.name}</p>
                     <span className="text-[11px] text-gray-400">
                       Not connected
                     </span>
                   </div>
                 ))}
                 <Button
-                  className="mt-2 w-full"
+                  className="mt-3 w-full"
                   variant="secondary"
                   onClick={() => router.push("/integrations")}
                 >
