@@ -156,6 +156,52 @@ router.post(
   }),
 );
 
+// Razorpay webhook route for workflow triggers
+router.post(
+  "/razorpay/:workflowId",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { workflowId } = req.params;
+
+    if (!workflowId) {
+      return res.status(400).json({ error: "Workflow ID is required" });
+    }
+
+    const signature = req.headers["x-razorpay-signature"] as string | undefined;
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+    if (webhookSecret && signature) {
+      const hmac = crypto.createHmac("sha256", webhookSecret);
+      hmac.update(JSON.stringify(req.body));
+      const expected = hmac.digest("hex");
+      if (signature !== expected) {
+        logger.warn(`Invalid Razorpay signature for workflow ${workflowId}`);
+        return res.status(401).json({ error: "Invalid signature" });
+      }
+    }
+
+    try {
+      const executionId = await WebhookService.enqueueWorkflow(
+        workflowId,
+        "razorpay-trigger",
+        req.body,
+      );
+
+      return res.status(202).json({
+        success: true,
+        message: "Razorpay webhook accepted",
+        executionId,
+      });
+    } catch (error) {
+      logger.error(`Razorpay webhook error for ${workflowId}:`, error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to process Razorpay webhook",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }),
+);
+
 router.post(
   "/inbound/:workflowId",
   asyncHandler(async (req: Request, res: Response) => {
