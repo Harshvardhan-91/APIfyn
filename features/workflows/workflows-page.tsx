@@ -1,26 +1,31 @@
 "use client";
 
 import { AppIcon } from "@/components/icons/brand-icons";
+import { useAuth } from "@/components/providers/auth-provider";
 import { usePayment } from "@/components/providers/payment-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import { useFetch } from "@/hooks/use-fetch";
+import { apiFetch } from "@/lib/api/client";
 import type { ApiResult, Workflow } from "@/lib/api/types";
 import {
   AlertCircle,
   ArrowUpRight,
   Calendar,
   CheckCircle,
+  Edit,
   MoreHorizontal,
   Pause,
   Play,
   Plus,
   Search,
+  Trash2,
   Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type ProcessedWorkflow = Workflow & {
   status: "active" | "paused";
@@ -46,13 +51,58 @@ const appNameFromBlock = (type?: string) => {
 
 export function WorkflowsPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const { plan, usage } = usePayment();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "paused">(
     "all",
   );
-  const { data, isLoading } =
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { data, isLoading, mutate } =
     useFetch<ApiResult<{ workflows: Workflow[] }>>("/api/workflow");
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  async function toggleWorkflow(id: string, currentlyActive: boolean) {
+    if (!user?.token) return;
+    try {
+      await apiFetch(`/api/workflow/${id}`, {
+        method: "PATCH",
+        token: user.token,
+        body: JSON.stringify({ isActive: !currentlyActive }),
+      });
+      toast(currentlyActive ? "Workflow paused" : "Workflow activated", "success");
+      await mutate();
+    } catch {
+      toast("Failed to update workflow", "error");
+    }
+    setOpenMenuId(null);
+  }
+
+  async function deleteWorkflow(id: string) {
+    if (!user?.token) return;
+    try {
+      await apiFetch(`/api/workflow/${id}`, {
+        method: "DELETE",
+        token: user.token,
+      });
+      toast("Workflow deleted", "success");
+      await mutate();
+    } catch {
+      toast("Failed to delete workflow", "error");
+    }
+    setOpenMenuId(null);
+  }
 
   const atWorkflowLimit =
     plan &&
@@ -108,7 +158,7 @@ export function WorkflowsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50/50">
-      <div className="mx-auto max-w-7xl px-4 pb-8 pt-24 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 pb-8 pt-20 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900">
@@ -218,13 +268,60 @@ export function WorkflowsPage() {
                         </span>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      className="px-2"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <MoreHorizontal className="h-4 w-4 text-gray-400" />
-                    </Button>
+                    <div className="relative" ref={openMenuId === workflow.id ? menuRef : undefined}>
+                      <Button
+                        variant="ghost"
+                        className="px-2"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setOpenMenuId(openMenuId === workflow.id ? null : workflow.id);
+                        }}
+                      >
+                        <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                      </Button>
+                      {openMenuId === workflow.id && (
+                        <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(null);
+                              router.push(`/workflows/${workflow.id}/edit`);
+                            }}
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleWorkflow(workflow.id, workflow.status === "active");
+                            }}
+                          >
+                            {workflow.status === "active" ? (
+                              <><Pause className="h-3.5 w-3.5" /> Pause</>
+                            ) : (
+                              <><Play className="h-3.5 w-3.5" /> Activate</>
+                            )}
+                          </button>
+                          <div className="my-1 border-t border-gray-100" />
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 transition hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteWorkflow(workflow.id);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <p className="mb-4 line-clamp-2 text-xs leading-relaxed text-gray-500">
@@ -265,22 +362,21 @@ export function WorkflowsPage() {
                       <Calendar className="h-3 w-3" />
                       {workflow.created}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        className="rounded-lg p-1 transition hover:bg-gray-100"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <Play className="h-3.5 w-3.5 text-gray-400" />
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-lg p-1 transition hover:bg-gray-100"
-                        onClick={(event) => event.stopPropagation()}
-                      >
+                    <button
+                      type="button"
+                      className="rounded-lg p-1.5 transition hover:bg-gray-100"
+                      title={workflow.status === "active" ? "Pause workflow" : "Activate workflow"}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleWorkflow(workflow.id, workflow.status === "active");
+                      }}
+                    >
+                      {workflow.status === "active" ? (
                         <Pause className="h-3.5 w-3.5 text-gray-400" />
-                      </button>
-                    </div>
+                      ) : (
+                        <Play className="h-3.5 w-3.5 text-gray-400" />
+                      )}
+                    </button>
                   </div>
                 </CardContent>
               </Card>
