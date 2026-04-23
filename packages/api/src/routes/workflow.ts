@@ -10,6 +10,10 @@ import {
   canCreateWorkflow,
   getUserPlanLimits,
 } from "../services/plan.service";
+import {
+  processOpenaiSecretsOnSave,
+  redactWorkflowDefinitionForClient,
+} from "../services/workflow-secrets.service";
 import { WebhookService } from "../services/webhook.service";
 import { createLogger } from "../utils/logger";
 
@@ -49,12 +53,22 @@ router.post(
         });
       }
 
+      let defToStore: unknown;
+      try {
+        defToStore = processOpenaiSecretsOnSave(definition, null);
+      } catch (e) {
+        return res.status(400).json({
+          success: false,
+          error: e instanceof Error ? e.message : "Invalid workflow definition",
+        });
+      }
+
       // Create the workflow
       const workflow = await prisma.workflow.create({
         data: {
           name,
           description: description || "",
-          definition: definition as any, // Prisma handles JSON automatically
+          definition: defToStore as any, // Prisma handles JSON automatically
           category: category || "general",
           triggerType: triggerType || "MANUAL",
           isActive: isActive !== undefined ? isActive : true, // Default to true if not specified
@@ -88,7 +102,7 @@ router.post(
           id: workflow.id,
           name: workflow.name,
           description: workflow.description,
-          definition: workflow.definition,
+          definition: redactWorkflowDefinitionForClient(workflow.definition),
           category: workflow.category,
           triggerType: workflow.triggerType,
           isActive: workflow.isActive,
@@ -141,13 +155,26 @@ router.put(
         });
       }
 
+      let defToStore: unknown;
+      try {
+        defToStore = processOpenaiSecretsOnSave(
+          definition,
+          existingWorkflow.definition,
+        );
+      } catch (e) {
+        return res.status(400).json({
+          success: false,
+          error: e instanceof Error ? e.message : "Invalid workflow definition",
+        });
+      }
+
       // Update the workflow
       const workflow = await prisma.workflow.update({
         where: { id },
         data: {
           name,
           description: description || "",
-          definition: definition as any, // Prisma handles JSON automatically
+          definition: defToStore as any, // Prisma handles JSON automatically
           category: category || "general",
           triggerType: triggerType || "MANUAL",
           isActive: isActive !== undefined ? isActive : true,
@@ -193,7 +220,7 @@ router.put(
           id: workflow.id,
           name: workflow.name,
           description: workflow.description,
-          definition: workflow.definition,
+          definition: redactWorkflowDefinitionForClient(workflow.definition),
           category: workflow.category,
           triggerType: workflow.triggerType,
           isActive: workflow.isActive,
@@ -252,7 +279,7 @@ router.get(
           id: workflow.id,
           name: workflow.name,
           description: workflow.description,
-          definition: workflow.definition,
+          definition: redactWorkflowDefinitionForClient(workflow.definition),
           category: workflow.category,
           triggerType: workflow.triggerType,
           isActive: workflow.isActive,
@@ -353,6 +380,7 @@ router.get(
 
       const workflowWithStats = {
         ...workflow,
+        definition: redactWorkflowDefinitionForClient(workflow.definition),
         totalRuns,
         successfulRuns,
         failedRuns,
