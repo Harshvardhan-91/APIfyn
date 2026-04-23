@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { PaymentProvider } from "@/components/providers/payment-provider";
+import { ToastProvider } from "@/components/ui/toast";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -28,7 +29,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className={inter.variable}>
       <body className={`${inter.className} antialiased`}>
         <AuthProvider>
-          <PaymentProvider>{children}</PaymentProvider>
+          <PaymentProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </PaymentProvider>
         </AuthProvider>
       </body>
     </html>
