@@ -9,10 +9,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
-          <p className="text-sm text-slate-600">Loading APIfyn...</p>
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-gray-200 border-t-gray-900" />
+          <p className="text-sm text-gray-500">Loading...</p>
         </div>
       </div>
     );
@@ -20,17 +20,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="max-w-md rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <h1 className="text-xl font-bold text-gray-900">
             Sign in required
           </h1>
-          <p className="mt-2 text-slate-600">
+          <p className="mt-2 text-sm text-gray-500">
             Use the homepage sign-in button to access your workspace.
           </p>
           <a
             href="/"
-            className="mt-6 inline-flex rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+            className="mt-6 inline-flex rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
           >
             Go home
           </a>
