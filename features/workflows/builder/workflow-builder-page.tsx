@@ -46,6 +46,63 @@ function findDefinition(type: string) {
   return allBlockDefinitions.find((block) => block.id === type);
 }
 
+const AI_PROMPT_MIN = 10;
+
+function AiWorkflowComposerDock({
+  value,
+  onChange,
+  onSubmit,
+  loading,
+  canSubmit,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  loading: boolean;
+  canSubmit: boolean;
+}) {
+  return (
+    <div
+      className="absolute bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white"
+      aria-label="Build workflow with AI"
+    >
+      <div className="flex w-full min-w-0 items-center gap-2 px-3 py-2 sm:gap-2.5 sm:px-4 sm:py-2.5">
+        <textarea
+          rows={1}
+          className="min-h-[2.25rem] max-h-24 w-0 min-w-0 flex-1 resize-y rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1.5 text-base leading-snug text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-900/10 sm:min-h-[2.125rem] sm:px-3 sm:text-sm"
+          placeholder="Describe your workflow: trigger, steps, destinations (Slack, email…)…"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              onSubmit();
+            }
+          }}
+          disabled={loading}
+        />
+        <button
+          type="button"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-10"
+          onClick={onSubmit}
+          disabled={loading || !canSubmit}
+          title={
+            canSubmit
+              ? "Generate workflow from prompt"
+              : `Type at least ${AI_PROMPT_MIN} characters, then send`
+          }
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function WorkflowBuilderPage() {
   const router = useRouter();
   const params = useParams<{ id?: string }>();
@@ -335,6 +392,7 @@ export function WorkflowBuilderPage() {
 
   async function generateWithAI() {
     if (!user?.token || !aiPrompt.trim() || aiLoading) return;
+    if (aiPrompt.trim().length < AI_PROMPT_MIN) return;
     setAiLoading(true);
     setMessage(undefined);
     try {
@@ -404,6 +462,8 @@ export function WorkflowBuilderPage() {
     }
   }
 
+  const showAiDock = !workflowId && blocks.length === 0;
+
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-gray-50 pt-14">
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-3 sm:px-5">
@@ -444,40 +504,6 @@ export function WorkflowBuilderPage() {
         </Button>
       </div>
 
-      {/* AI generation bar */}
-      {!workflowId && blocks.length === 0 ? (
-        <div className="border-b border-gray-200 bg-white px-3 py-2.5 sm:px-5">
-          <div className="mx-auto flex max-w-2xl items-center gap-2">
-            <span className="shrink-0 font-mono text-sm text-gray-300">&gt;</span>
-            <input
-              className="flex-1 bg-transparent text-sm text-gray-700 placeholder:text-gray-400 outline-none"
-              placeholder="Describe your workflow in plain English..."
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  generateWithAI();
-                }
-              }}
-              disabled={aiLoading}
-            />
-            <button
-              type="button"
-              className="shrink-0 rounded-lg bg-gray-900 p-1.5 text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
-              onClick={generateWithAI}
-              disabled={aiLoading || aiPrompt.trim().length < 10}
-            >
-              {aiLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {message ? (
         <div className="border-b border-amber-200 bg-amber-50 px-5 py-2 text-xs text-amber-800">
           {message}
@@ -500,30 +526,43 @@ export function WorkflowBuilderPage() {
           </div>
         </div>
 
-        <BuilderCanvas
-          blocks={blocks}
-          connections={connections}
-          selectedBlockId={selectedBlockId}
-          onSelectBlock={setSelectedBlockId}
-          onDeleteBlock={(id) => {
-            setBlocks((previous) =>
-              previous.filter((block) => block.instanceId !== id),
-            );
-            setConnections((previous) =>
-              previous.filter(
-                (connection) => connection.from !== id && connection.to !== id,
-              ),
-            );
-          }}
-          onConnect={connect}
-          onMoveBlock={(id, position) => {
-            setBlocks((previous) =>
-              previous.map((block) =>
-                block.instanceId === id ? { ...block, position } : block,
-              ),
-            );
-          }}
-        />
+        <div className="relative min-h-0 min-w-0 flex-1">
+          <BuilderCanvas
+            className={showAiDock ? "pb-20 sm:pb-[4.5rem]" : undefined}
+            blocks={blocks}
+            connections={connections}
+            selectedBlockId={selectedBlockId}
+            onSelectBlock={setSelectedBlockId}
+            onDeleteBlock={(id) => {
+              setBlocks((previous) =>
+                previous.filter((block) => block.instanceId !== id),
+              );
+              setConnections((previous) =>
+                previous.filter(
+                  (connection) =>
+                    connection.from !== id && connection.to !== id,
+                ),
+              );
+            }}
+            onConnect={connect}
+            onMoveBlock={(id, position) => {
+              setBlocks((previous) =>
+                previous.map((block) =>
+                  block.instanceId === id ? { ...block, position } : block,
+                ),
+              );
+            }}
+          />
+          {showAiDock ? (
+            <AiWorkflowComposerDock
+              value={aiPrompt}
+              onChange={setAiPrompt}
+              onSubmit={generateWithAI}
+              loading={aiLoading}
+              canSubmit={aiPrompt.trim().length >= AI_PROMPT_MIN}
+            />
+          ) : null}
+        </div>
 
         {/* Config panel */}
         {selectedBlock ? (

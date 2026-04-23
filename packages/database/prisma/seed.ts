@@ -2,6 +2,32 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+/** If another plan row already uses this slug, rename it so the seed row can take it. */
+async function releaseSlug(keepId: string, slug: string) {
+  const other = await prisma.plan.findFirst({
+    where: { slug, NOT: { id: keepId } },
+  });
+  if (other) {
+    await prisma.plan.update({
+      where: { id: other.id },
+      data: { slug: `${other.slug}-superseded-${other.id.slice(0, 8)}` },
+    });
+  }
+}
+
+/** If another plan row already uses this display name, rename it. */
+async function releaseName(keepId: string, name: string) {
+  const other = await prisma.plan.findFirst({
+    where: { name, NOT: { id: keepId } },
+  });
+  if (other) {
+    await prisma.plan.update({
+      where: { id: other.id },
+      data: { name: `${other.name} (${other.id.slice(0, 6)})` },
+    });
+  }
+}
+
 async function main() {
   const plans = [
     {
@@ -57,11 +83,16 @@ async function main() {
   ];
 
   for (const plan of plans) {
-    await prisma.plan.upsert({
-      where: { slug: plan.slug },
-      update: plan,
-      create: plan,
+    const existing = await prisma.plan.findFirst({
+      where: { OR: [{ slug: plan.slug }, { name: plan.name }] },
     });
+    if (existing) {
+      await releaseSlug(existing.id, plan.slug);
+      await releaseName(existing.id, plan.name);
+      await prisma.plan.update({ where: { id: existing.id }, data: plan });
+    } else {
+      await prisma.plan.create({ data: plan });
+    }
   }
 
   console.log("Seed data created successfully");

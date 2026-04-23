@@ -18,6 +18,8 @@ type BuilderCanvasProps = {
   onDeleteBlock: (id: string) => void;
   onConnect: (from: string, to: string) => void;
   onMoveBlock: (id: string, position: { x: number; y: number }) => void;
+  /** e.g. bottom padding so content stays above a fixed bottom UI */
+  className?: string;
 };
 
 export function BuilderCanvas({
@@ -28,6 +30,7 @@ export function BuilderCanvas({
   onDeleteBlock,
   onConnect,
   onMoveBlock,
+  className,
 }: BuilderCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{
@@ -72,7 +75,9 @@ export function BuilderCanvas({
   }
 
   return (
-    <section className="relative flex-1 overflow-auto bg-gray-50/50">
+    <section
+      className={cn("relative flex-1 overflow-auto bg-gray-50/50", className)}
+    >
       <div
         ref={canvasRef}
         className="relative min-h-[720px] min-w-[920px] bg-[radial-gradient(circle,#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]"

@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "pnpm --filter @apifyn/database generate",
     "db:migrate": "pnpm --filter @apifyn/database migrate",
+    "db:seed": "pnpm --filter @apifyn/database seed",
     "db:studio": "pnpm --filter @apifyn/database studio"
   },
   "dependencies": {
