@@ -1,8 +1,13 @@
 "use client";
 
+import { useAuth } from "@/components/providers/auth-provider";
 import { usePayment } from "@/components/providers/payment-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
+import { OpenAIIcon } from "@/components/icons/brand-icons";
+import { apiFetch } from "@/lib/api/client";
 import {
   ArrowUpRight,
   Bell,
@@ -12,8 +17,8 @@ import {
   Shield,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
-import { useState } from "react";
+import type { ComponentType, ReactNode } from "react";
+import { useEffect, useState } from "react";
 
 const defaultSettings = {
   email: true,
@@ -22,9 +27,135 @@ const defaultSettings = {
   profilePublic: false,
 };
 
+function OpenAIKeySettings() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [configured, setConfigured] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.token) return;
+    let cancelled = false;
+    setLoading(true);
+    apiFetch<{ success: boolean; configured: boolean }>(
+      "/api/user/openai-key",
+      { token: user.token },
+    )
+      .then((r) => {
+        if (!cancelled) setConfigured(r.configured);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.token]);
+
+  async function saveKey() {
+    if (!user?.token || !draft.trim()) return;
+    setSaving(true);
+    try {
+      await apiFetch("/api/user/openai-key", {
+        method: "PUT",
+        token: user.token,
+        body: JSON.stringify({ openaiKey: draft.trim() }),
+      });
+      setDraft("");
+      setConfigured(true);
+      toast("OpenAI key saved", "success");
+    } catch (e) {
+      toast(
+        e instanceof Error ? e.message : "Failed to save key",
+        "error",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function clearKey() {
+    if (!user?.token) return;
+    setSaving(true);
+    try {
+      await apiFetch("/api/user/openai-key", {
+        method: "PUT",
+        token: user.token,
+        body: JSON.stringify({ openaiKey: null }),
+      });
+      setConfigured(false);
+      toast("OpenAI key removed", "info");
+    } catch (e) {
+      toast(
+        e instanceof Error ? e.message : "Failed to remove key",
+        "error",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <SettingsSection icon={OpenAIIcon} title="OpenAI (workflow blocks)">
+      <p className="text-sm text-gray-500">
+        Default API key for <strong>OpenAI</strong> action blocks. Stored
+        encrypted. Per-workflow keys are optional in each block.
+      </p>
+      {loading ? (
+        <p className="text-xs text-gray-400">Loading…</p>
+      ) : configured ? (
+        <p className="text-xs text-emerald-700">
+          A key is on file. Paste a new key to replace it.
+        </p>
+      ) : null}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="min-w-0 flex-1">
+          <span className="text-xs text-gray-600">API key</span>
+          <Input
+            type="password"
+            autoComplete="off"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="sk-…"
+            className="mt-1"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            onClick={saveKey}
+            disabled={saving || !draft.trim()}
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Save key"
+            )}
+          </Button>
+          {configured && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={clearKey}
+              disabled={saving}
+            >
+              Remove
+            </Button>
+          )}
+        </div>
+      </div>
+    </SettingsSection>
+  );
+}
+
 export function SettingsPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [settings, setSettings] = useState(defaultSettings);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const {
     plan,
     usage,
@@ -37,7 +168,8 @@ export function SettingsPage() {
     !subscription || !["ACTIVE", "AUTHENTICATED"].includes(subscription.status);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 pb-8 pt-24 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gray-50/50">
+      <div className="mx-auto max-w-4xl px-4 pb-8 pt-20 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">
           Settings
@@ -67,23 +199,38 @@ export function SettingsPage() {
                 >
                   Upgrade <ArrowUpRight className="h-3.5 w-3.5" />
                 </Button>
+              ) : confirmCancel ? (
+                <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5">
+                  <span className="text-xs text-red-700">Cancel subscription?</span>
+                  <Button
+                    variant="danger"
+                    className="px-3 py-1.5 text-xs"
+                    disabled={paymentLoading}
+                    onClick={() => {
+                      cancelSubscription();
+                      setConfirmCancel(false);
+                      toast("Subscription cancelled", "success");
+                    }}
+                  >
+                    {paymentLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      "Confirm"
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="px-2 py-1.5 text-xs"
+                    onClick={() => setConfirmCancel(false)}
+                  >
+                    No
+                  </Button>
+                </div>
               ) : (
                 <Button
                   variant="ghost"
-                  disabled={paymentLoading}
-                  onClick={() => {
-                    if (
-                      confirm(
-                        "Are you sure you want to cancel your subscription?",
-                      )
-                    ) {
-                      cancelSubscription();
-                    }
-                  }}
+                  onClick={() => setConfirmCancel(true)}
                 >
-                  {paymentLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : null}
                   Cancel Subscription
                 </Button>
               )}
@@ -165,6 +312,7 @@ export function SettingsPage() {
             }
           />
         </SettingsSection>
+        <OpenAIKeySettings />
         <SettingsSection icon={Shield} title="Privacy">
           <Toggle
             label="Public profile"
@@ -180,9 +328,10 @@ export function SettingsPage() {
             Timezone and language settings will be available soon.
           </p>
         </SettingsSection>
-        <Button onClick={() => alert("Settings saved locally")}>
+        <Button onClick={() => toast("Settings saved", "success")}>
           Save Settings
         </Button>
+      </div>
       </div>
     </main>
   );
@@ -192,7 +341,7 @@ function SettingsSection({
   icon: Icon,
   title,
   children,
-}: { icon: typeof Bell; title: string; children: ReactNode }) {
+}: { icon: ComponentType<{ className?: string }>; title: string; children: ReactNode }) {
   return (
     <Card>
       <CardHeader>
