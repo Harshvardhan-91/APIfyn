@@ -1,6 +1,6 @@
 "use client";
 
-import { GitHubIcon, SlackIcon } from "@/components/icons/brand-icons";
+import { GitHubIcon, OpenAIIcon, SlackIcon } from "@/components/icons/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -312,6 +312,22 @@ const TRIGGER_VARIABLES: Record<string, VarGroup> = {
       { name: "payment_id", desc: "Stripe payment ID" },
     ],
   },
+  "razorpay-trigger": {
+    source: "Razorpay Payment",
+    description: "Variables from Razorpay webhook events",
+    vars: [
+      { name: "event_type", desc: "e.g. payment.captured, payment.failed" },
+      { name: "payment_id", desc: "Razorpay payment ID" },
+      { name: "amount", desc: "Payment amount in rupees" },
+      { name: "currency", desc: "Currency code (INR)" },
+      { name: "status", desc: "Payment status" },
+      { name: "method", desc: "Payment method (card, upi, netbanking)" },
+      { name: "customer_email", desc: "Customer email" },
+      { name: "customer_contact", desc: "Customer phone number" },
+      { name: "description", desc: "Payment description" },
+      { name: "order_id", desc: "Razorpay order ID" },
+    ],
+  },
   "webhook-trigger": {
     source: "Webhook",
     description: "Variables from inbound webhook payload",
@@ -414,7 +430,9 @@ export function ConfigPanel({
   const googleConnected = Boolean(integrations?.google?.connected);
   const notionConnected = Boolean(integrations?.notion?.connected);
 
-  function updateConfig(config: Record<string, string | string[]>) {
+  function updateConfig(
+    config: Record<string, string | string[] | boolean | undefined>,
+  ) {
     onUpdate({
       ...block,
       config: { ...block.config, ...config },
@@ -437,6 +455,7 @@ export function ConfigPanel({
     const routeMap: Record<string, string> = {
       "stripe-trigger": "stripe",
       "typeform-trigger": "typeform",
+      "razorpay-trigger": "razorpay",
       "webhook-trigger": "inbound",
       "gmail-trigger": "inbound",
       "calendar-trigger": "inbound",
@@ -744,6 +763,60 @@ export function ConfigPanel({
           </section>
         )}
 
+        {/* ═══════════════════ RAZORPAY TRIGGER ═══════════════════ */}
+        {block.id === "razorpay-trigger" && (
+          <section className="rounded-2xl border border-gray-200 p-5 space-y-4">
+            <h3 className="text-sm font-medium text-gray-900">Razorpay</h3>
+            <WebhookUrlDisplay url={webhookUrl} />
+            <CheckboxGroup
+              label="Event types"
+              options={[
+                {
+                  value: "payment.captured",
+                  label: "Payment captured",
+                  desc: "— successful payment",
+                },
+                {
+                  value: "payment.failed",
+                  label: "Payment failed",
+                },
+                {
+                  value: "payment.authorized",
+                  label: "Payment authorized",
+                },
+                {
+                  value: "refund.created",
+                  label: "Refund created",
+                },
+                {
+                  value: "order.paid",
+                  label: "Order paid",
+                },
+                {
+                  value: "subscription.activated",
+                  label: "Subscription activated",
+                },
+                {
+                  value: "subscription.charged",
+                  label: "Subscription charged",
+                },
+                {
+                  value: "subscription.cancelled",
+                  label: "Subscription cancelled",
+                },
+              ]}
+              selected={
+                ((block.config.eventTypes as string[]) ?? []) as string[]
+              }
+              onChange={(values) => updateConfig({ eventTypes: values })}
+            />
+            <Hint>
+              Add the webhook URL in Razorpay Dashboard &gt; Settings &gt;
+              Webhooks. Select the events you want to receive.
+            </Hint>
+          </section>
+        )}
+
         {/* ═══════════════════ GMAIL SEND ═══════════════════ */}
         {block.id === "gmail-send" && (
           <section className="rounded-2xl border border-gray-200 p-5 space-y-4">
@@ -1040,6 +1113,229 @@ export function ConfigPanel({
                 value={(block.config.avatarUrl as string) ?? ""}
                 onChange={(e) => updateConfig({ avatarUrl: e.target.value })}
               />
+            </div>
+          </section>
+        )}
+
+        {/* ═══════════════════ WHATSAPP SEND ═══════════════════ */}
+        {block.id === "whatsapp-send" && (
+          <section className="rounded-2xl border border-gray-200 p-5 space-y-4">
+            <h3 className="text-sm font-medium text-gray-900">
+              WhatsApp Message (MSG91)
+            </h3>
+            <div>
+              <Label>Recipient phone number</Label>
+              <Input
+                placeholder="919876543210 or {{customer_contact}}"
+                value={(block.config.to as string) ?? ""}
+                onChange={(e) => updateConfig({ to: e.target.value })}
+              />
+              <Hint>Include country code without + (e.g. 919876543210 for India)</Hint>
+            </div>
+            <div>
+              <Label>MSG91 Template ID</Label>
+              <Input
+                placeholder="template_name_from_msg91"
+                value={(block.config.templateId as string) ?? ""}
+                onChange={(e) => updateConfig({ templateId: e.target.value })}
+              />
+              <Hint>
+                Create a WhatsApp template in your MSG91 dashboard first.
+                Leave empty to use the default template from .env.
+              </Hint>
+            </div>
+            <div>
+              <Label>Template variables (comma-separated)</Label>
+              <Input
+                placeholder="{{customer_name}}, {{amount}}, {{order_id}}"
+                value={(block.config.variables as string) ?? ""}
+                onChange={(e) => updateConfig({ variables: e.target.value })}
+              />
+              <Hint>
+                These map to {"{{1}}"}, {"{{2}}"}, {"{{3}}"} etc. in your MSG91 template.
+              </Hint>
+            </div>
+            <div>
+              <Label>Language code</Label>
+              <select
+                className={selectClass}
+                value={(block.config.language as string) ?? "en"}
+                onChange={(e) => updateConfig({ language: e.target.value })}
+              >
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+                <option value="mr">Marathi</option>
+                <option value="ta">Tamil</option>
+                <option value="te">Telugu</option>
+                <option value="bn">Bengali</option>
+                <option value="gu">Gujarati</option>
+                <option value="kn">Kannada</option>
+              </select>
+            </div>
+          </section>
+        )}
+
+        {/* ═══════════════════ OPENAI ACTION ═══════════════════ */}
+        {block.id === "openai-action" && (
+          <section className="rounded-2xl border border-gray-200 p-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#10A37F] text-white">
+                <OpenAIIcon className="h-[18px] w-[18px]" />
+              </span>
+              <div>
+                <h3 className="text-sm font-medium text-gray-900">OpenAI</h3>
+                <p className="text-[11px] text-gray-500">
+                  Key is stored encrypted. Default: Settings → OpenAI, or
+                  override below.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>API key source</Label>
+              <div className="space-y-2 rounded-xl border border-gray-200 bg-white p-3">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    className="mt-1 h-3.5 w-3.5"
+                    checked={block.config.useOpenaiAccountKey !== false}
+                    onChange={() =>
+                      updateConfig({
+                        useOpenaiAccountKey: true,
+                        openaiKeyInput: "",
+                        __openaiKeyClear: true,
+                        openaiKeyStored: false,
+                      })
+                    }
+                  />
+                  <div>
+                    <span className="text-xs font-medium text-gray-800">
+                      Use my key from Settings
+                    </span>
+                    <p className="text-[11px] text-gray-500">
+                      Set once under Settings; applies to all workflows.
+                    </p>
+                  </div>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    className="mt-1 h-3.5 w-3.5"
+                    checked={block.config.useOpenaiAccountKey === false}
+                    onChange={() =>
+                      updateConfig({ useOpenaiAccountKey: false })
+                    }
+                  />
+                  <div>
+                    <span className="text-xs font-medium text-gray-800">
+                      Use a key only for this workflow
+                    </span>
+                    <p className="text-[11px] text-gray-500">
+                      Different billing or org per workflow. Encrypted in our
+                      database.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {block.config.useOpenaiAccountKey === false && (
+              <div>
+                <Label>OpenAI API key (this workflow)</Label>
+                {(block.config as { openaiKeyStored?: boolean }).openaiKeyStored && (
+                  <p className="mb-1.5 text-[11px] text-emerald-700">
+                    A key is already saved. Paste a new one to replace, or
+                    remove below.
+                  </p>
+                )}
+                <Input
+                  type="password"
+                  autoComplete="off"
+                  placeholder="sk-…"
+                  value={(block.config.openaiKeyInput as string) ?? ""}
+                  onChange={(e) =>
+                    updateConfig({
+                      openaiKeyInput: e.target.value,
+                    })
+                  }
+                />
+                {(block.config as { openaiKeyStored?: boolean }).openaiKeyStored && (
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-medium text-red-600 hover:underline"
+                    onClick={() =>
+                      updateConfig({
+                        useOpenaiAccountKey: true,
+                        __openaiKeyClear: true,
+                        openaiKeyStored: false,
+                        openaiKeyInput: "",
+                      })
+                    }
+                  >
+                    Remove workflow key and use Settings
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div>
+              <Label>Model</Label>
+              <select
+                className={selectClass}
+                value={(block.config.model as string) || "gpt-4o-mini"}
+                onChange={(e) => updateConfig({ model: e.target.value })}
+              >
+                <option value="gpt-4o-mini">gpt-4o-mini</option>
+                <option value="gpt-4o">gpt-4o</option>
+                <option value="gpt-4-turbo">gpt-4-turbo</option>
+                <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+              </select>
+            </div>
+            <div>
+              <Label>System prompt</Label>
+              <Textarea
+                rows={3}
+                value={(block.config.systemPrompt as string) ?? "You are a helpful assistant. Reply concisely."}
+                onChange={(e) => updateConfig({ systemPrompt: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>User message</Label>
+              <Textarea
+                rows={4}
+                placeholder="Summarize: {{commit_message}} — author {{author_name}}"
+                value={(block.config.userMessage as string) ?? ""}
+                onChange={(e) => updateConfig({ userMessage: e.target.value })}
+              />
+              <Hint>
+                Supports trigger variables. Output is in {"{{text}}"} for
+                following blocks.
+              </Hint>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Temperature</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  value={String(
+                    (block.config.temperature as string) ?? "0.3",
+                  )}
+                  onChange={(e) => updateConfig({ temperature: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Max tokens</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={4096}
+                  value={String((block.config.maxTokens as string) ?? "1000")}
+                  onChange={(e) => updateConfig({ maxTokens: e.target.value })}
+                />
+              </div>
             </div>
           </section>
         )}
