@@ -3,6 +3,7 @@
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useToast } from "@/components/ui/toast";
 import { useFetch } from "@/hooks/use-fetch";
 import { apiFetch } from "@/lib/api/client";
 import type { ApiResult, Workflow } from "@/lib/api/types";
@@ -55,13 +56,11 @@ export function WorkflowDetailPage() {
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
   const workflowId = params.id;
-  const [message, setMessage] = useState<string>();
-  const [messageType, setMessageType] = useState<"info" | "success" | "error">(
-    "info",
-  );
+  const { toast } = useToast();
   const [testing, setTesting] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { data, isLoading, mutate } = useFetch<
     ApiResult<{ workflow: Workflow }>
   >(`/api/workflow/${workflowId}`);
@@ -85,14 +84,12 @@ export function WorkflowDetailPage() {
   async function testWorkflow() {
     if (!user?.token || testing) return;
     setTesting(true);
-    setMessage("Running test...");
-    setMessageType("info");
+    toast("Running test...", "info");
     try {
       await apiFetch(`/api/webhooks/test/${workflowId}`, {
         method: "POST",
         token: user.token,
       });
-      setMessage("Test triggered! Waiting for result...");
 
       let attempts = 0;
       const poll = setInterval(async () => {
@@ -100,10 +97,7 @@ export function WorkflowDetailPage() {
         await mutate();
         if (attempts >= 10) {
           clearInterval(poll);
-          setMessage(
-            "Test triggered successfully. Execution may still be processing.",
-          );
-          setMessageType("success");
+          toast("Test completed", "success");
           setTesting(false);
         }
       }, 1500);
@@ -112,28 +106,28 @@ export function WorkflowDetailPage() {
         clearInterval(poll);
         await mutate();
         setTesting(false);
-        setMessage("Test workflow completed.");
-        setMessageType("success");
+        toast("Test workflow completed", "success");
       }, 8000);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Test failed");
-      setMessageType("error");
+      toast(error instanceof Error ? error.message : "Test failed", "error");
       setTesting(false);
     }
   }
 
   async function deleteWorkflow() {
-    if (!user?.token || deleting || !window.confirm("Delete this workflow?"))
-      return;
+    if (!user?.token || deleting) return;
     setDeleting(true);
     try {
       await apiFetch(`/api/workflow/${workflowId}`, {
         method: "DELETE",
         token: user.token,
       });
+      toast("Workflow deleted", "success");
       router.push("/workflows");
-    } catch {
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Failed to delete", "error");
       setDeleting(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -171,7 +165,7 @@ export function WorkflowDetailPage() {
 
   return (
     <main className="min-h-screen bg-gray-50/50">
-      <div className="mx-auto max-w-7xl px-4 pb-8 pt-24 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 pb-8 pt-20 sm:px-6 lg:px-8">
         <div className="mb-8">
           <div className="mb-4 flex items-center gap-4">
             <Button
@@ -211,23 +205,6 @@ export function WorkflowDetailPage() {
             {workflow.description ?? "No description available"}
           </p>
 
-          {message ? (
-            <div
-              className={`mb-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${
-                messageType === "error"
-                  ? "border-red-100 bg-red-50 text-red-700"
-                  : messageType === "success"
-                    ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                    : "border-blue-100 bg-blue-50 text-blue-700"
-              }`}
-            >
-              {testing && (
-                <div className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              )}
-              {message}
-            </div>
-          ) : null}
-
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant={workflow.isActive ? "secondary" : "primary"}
@@ -262,18 +239,38 @@ export function WorkflowDetailPage() {
               <Edit className="h-4 w-4" />
               Edit
             </Button>
-            <Button
-              variant="danger"
-              onClick={deleteWorkflow}
-              disabled={deleting}
-            >
-              {deleting ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              ) : (
+            {confirmDelete ? (
+              <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5">
+                <span className="text-xs text-red-700">Delete this workflow?</span>
+                <Button
+                  variant="danger"
+                  className="px-3 py-1.5 text-xs"
+                  onClick={deleteWorkflow}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : (
+                    "Confirm"
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="px-2 py-1.5 text-xs"
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="danger"
+                onClick={() => setConfirmDelete(true)}
+              >
                 <Trash2 className="h-4 w-4" />
-              )}
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
+                Delete
+              </Button>
+            )}
           </div>
         </div>
 
