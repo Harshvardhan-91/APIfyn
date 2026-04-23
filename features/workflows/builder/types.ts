@@ -12,7 +12,7 @@ export type BuilderBlockDefinition = {
 export type BuilderBlock = BuilderBlockDefinition & {
   instanceId: string;
   position: { x: number; y: number };
-  config: Record<string, string | string[]>;
+  config: Record<string, string | string[] | boolean | undefined>;
   status: "not-configured" | "requires-integration" | "configured";
   integrationStatus: "not-connected" | "connected";
 };
