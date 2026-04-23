@@ -28,6 +28,7 @@
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.5",
+    "openai": "^6.34.0",
     "prisma": "^5.8.1",
     "razorpay": "^2.9.2",
     "winston": "^3.11.0"
