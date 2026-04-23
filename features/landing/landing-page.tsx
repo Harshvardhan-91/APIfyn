@@ -121,7 +121,7 @@ function useTypingAnimation(texts: string[], speed = 40, pause = 2000) {
 const integrationLogos = [
   { icon: GitHubIcon, label: "GitHub", bg: "bg-[#24292f]", text: "text-white" },
   { icon: SlackIcon, label: "Slack", bg: "bg-[#4A154B]", text: "text-white" },
-  { icon: OpenAIIcon, label: "OpenAI", bg: "bg-[#10A37F]", text: "text-white" },
+  { icon: OpenAIIcon, label: "OpenAI", bg: "bg-white", text: "" },
   { icon: NotionIcon, label: "Notion", bg: "bg-black", text: "text-white" },
   { icon: GoogleSheetsIcon, label: "Sheets", bg: "bg-green-50", text: "text-green-700" },
   { icon: GmailIcon, label: "Gmail", bg: "bg-red-50", text: "text-red-600" },

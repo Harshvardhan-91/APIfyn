@@ -1179,8 +1179,8 @@ export function ConfigPanel({
         {block.id === "openai-action" && (
           <section className="rounded-2xl border border-gray-200 p-5 space-y-4">
             <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#10A37F] text-white">
-                <OpenAIIcon className="h-[18px] w-[18px]" />
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white">
+                <OpenAIIcon className="h-6 w-6" />
               </span>
               <div>
                 <h3 className="text-sm font-medium text-gray-900">OpenAI</h3>

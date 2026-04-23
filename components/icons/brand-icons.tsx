@@ -184,17 +184,18 @@ export function MSG91Icon({ className }: IconProps) {
   );
 }
 
-/** OpenAI wordmark (official-style mark; single path, scales at small sizes). */
+/** OpenAI / ChatGPT brand mark (asset in /public, user-supplied official artwork). */
 export function OpenAIIcon({ className }: IconProps) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
+    <img
+      src="/openai.png"
+      alt=""
+      width={24}
+      height={24}
+      aria-hidden
       className={className}
-    >
-      <path d="M22.2819 9.8211a5.9857 5.9857 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9857 5.9857 0 0 0-3.9987 2.9 6.0462 6.0462 0 0 0 .7515 7.2007 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.98 5.98 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.99 5.99 0 0 0 .511-4.9107 6.05 6.05 0 0 0-3.2645-2.9zM8.5 9.2h3.1l1.1 2.2 1.1-2.2h3.1v7.1h-2.1v-4.1l-1.1 2.2h-2.1l-1.1-2.2v4.1H8.5V9.2z" />
-    </svg>
+      style={{ objectFit: "contain" }}
+    />
   );
 }
 
@@ -305,8 +306,8 @@ export const brands: Record<string, BrandConfig> = {
   },
   openai: {
     icon: OpenAIIcon,
-    bg: "bg-[#10A37F]",
-    text: "text-white",
+    bg: "bg-white",
+    text: "",
     label: "OpenAI",
   },
 };

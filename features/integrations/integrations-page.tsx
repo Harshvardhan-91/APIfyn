@@ -115,9 +115,9 @@ const providers: ProviderConfig[] = [
     description:
       "Run GPT steps in workflows. Set a default key in Settings or a per-workflow key in the block. Encrypted at rest.",
     icon: OpenAIIcon,
-    bg: "bg-[#10A37F]",
-    text: "text-white",
-    ring: "ring-emerald-500/20",
+    bg: "bg-white",
+    text: "",
+    ring: "ring-gray-200/30",
     connectType: "config",
     authMethod: "API key",
     configureHint: "Add key in Settings or the OpenAI block",
