@@ -6,6 +6,7 @@ import {
 } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
 import { getUserPlanLimits } from "../services/plan.service";
+import { encryptSecret, isSecretsEncryptionConfigured } from "../utils/secret-encryption";
 import { createLogger } from "../utils/logger";
 
 const router = express.Router();
@@ -165,6 +166,56 @@ router.get(
         lastLoginAt: user.lastLoginAt,
       },
     });
+  }),
+);
+
+// OpenAI key (encrypted at rest) — used as default for openai-action blocks
+router.get(
+  "/openai-key",
+  authenticateFirebaseToken,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { openaiKeyEnc: true },
+    });
+    return res.json({
+      success: true,
+      configured: Boolean(user?.openaiKeyEnc),
+    });
+  }),
+);
+
+router.put(
+  "/openai-key",
+  authenticateFirebaseToken,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    if (!isSecretsEncryptionConfigured()) {
+      return res.status(503).json({
+        success: false,
+        error:
+          "Key storage is not configured (set SECRETS_ENCRYPTION_KEY to 64 hex characters).",
+      });
+    }
+    const key = req.body?.openaiKey;
+    if (key === null || key === "") {
+      await prisma.user.update({
+        where: { id: req.user.id },
+        data: { openaiKeyEnc: null },
+      });
+      return res.json({ success: true, configured: false });
+    }
+    if (typeof key !== "string" || !key.trim().startsWith("sk-")) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid key format. Paste a valid OpenAI API key (starts with sk-).",
+      });
+    }
+    const enc = encryptSecret(key.trim());
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { openaiKeyEnc: enc },
+    });
+    return res.json({ success: true, configured: true });
   }),
 );
 
