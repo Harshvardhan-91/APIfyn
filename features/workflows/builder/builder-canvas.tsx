@@ -5,10 +5,15 @@ import { cn } from "@/lib/utils";
 import { Settings, Trash2 } from "lucide-react";
 import {
   type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
   useRef,
   useState,
 } from "react";
 import type { BuilderBlock, BuilderConnection } from "./types";
+
+const BLOCK_WIDTH = 240;
+const PORT_CENTER_Y = 54;
 
 type BuilderCanvasProps = {
   blocks: BuilderBlock[];
@@ -18,9 +23,26 @@ type BuilderCanvasProps = {
   onDeleteBlock: (id: string) => void;
   onConnect: (from: string, to: string) => void;
   onMoveBlock: (id: string, position: { x: number; y: number }) => void;
-  /** e.g. bottom padding so content stays above a fixed bottom UI */
   className?: string;
 };
+
+type ConnectingState = {
+  fromBlockId: string;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+};
+
+function bezierPath(
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+): string {
+  const midX = (fromX + toX) / 2;
+  return `M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`;
+}
 
 export function BuilderCanvas({
   blocks,
@@ -39,16 +61,20 @@ export function BuilderCanvas({
     offsetY: number;
   } | null>(null);
 
-  function getCanvasPoint(event: ReactPointerEvent) {
+  const [connecting, setConnecting] = useState<ConnectingState | null>(null);
+  const [hoveredInputId, setHoveredInputId] = useState<string | null>(null);
+
+  function getCanvasPoint(event: { clientX: number; clientY: number }) {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      x: event.clientX - rect.left + (canvasRef.current?.parentElement?.scrollLeft ?? 0),
+      y: event.clientY - rect.top + (canvasRef.current?.parentElement?.scrollTop ?? 0),
     };
   }
 
   function startDrag(event: ReactPointerEvent, block: BuilderBlock) {
+    if (connecting) return;
     const point = getCanvasPoint(event);
     setDragging({
       id: block.instanceId,
@@ -74,13 +100,96 @@ export function BuilderCanvas({
     setDragging(null);
   }
 
+  const startConnecting = useCallback(
+    (event: ReactPointerEvent, block: BuilderBlock) => {
+      event.stopPropagation();
+      event.preventDefault();
+      const startX = block.position.x + BLOCK_WIDTH;
+      const startY = block.position.y + PORT_CENTER_Y;
+      const point = getCanvasPoint(event);
+      setConnecting({
+        fromBlockId: block.instanceId,
+        startX,
+        startY,
+        currentX: point.x,
+        currentY: point.y,
+      });
+    },
+    [],
+  );
+
+  const cancelConnecting = useCallback(() => {
+    setConnecting(null);
+    setHoveredInputId(null);
+  }, []);
+
+  useEffect(() => {
+    if (!connecting) return;
+
+    function onMove(event: PointerEvent) {
+      const point = getCanvasPoint(event);
+      setConnecting((prev) =>
+        prev ? { ...prev, currentX: point.x, currentY: point.y } : null,
+      );
+    }
+
+    function onUp(event: PointerEvent) {
+      if (!connecting) return;
+
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const inputDot = target?.closest("[data-input-block-id]") as HTMLElement | null;
+
+      if (inputDot) {
+        const toBlockId = inputDot.getAttribute("data-input-block-id");
+        if (toBlockId && toBlockId !== connecting.fromBlockId) {
+          onConnect(connecting.fromBlockId, toBlockId);
+        }
+      }
+      setConnecting(null);
+      setHoveredInputId(null);
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setConnecting(null);
+        setHoveredInputId(null);
+      }
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [connecting, onConnect, cancelConnecting]);
+
+  const isValidDropTarget = useCallback(
+    (blockId: string) => {
+      if (!connecting) return false;
+      if (blockId === connecting.fromBlockId) return false;
+      return !connections.some(
+        (c) => c.from === connecting.fromBlockId && c.to === blockId,
+      );
+    },
+    [connecting, connections],
+  );
+
   return (
     <section
       className={cn("relative flex-1 overflow-auto bg-gray-50/50", className)}
     >
       <div
         ref={canvasRef}
-        className="relative min-h-[720px] min-w-[920px] bg-[radial-gradient(circle,#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]"
+        className={cn(
+          "relative min-h-[720px] min-w-[920px] bg-[radial-gradient(circle,#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]",
+          connecting && "cursor-crosshair",
+        )}
+        onClick={() => {
+          if (connecting) cancelConnecting();
+        }}
       >
         <svg
           className="pointer-events-none absolute inset-0 h-full w-full"
@@ -94,35 +203,48 @@ export function BuilderCanvas({
               (block) => block.instanceId === connection.to,
             );
             if (!from || !to) return null;
-            const fromX = from.position.x + 240;
-            const fromY = from.position.y + 54;
+            const fromX = from.position.x + BLOCK_WIDTH;
+            const fromY = from.position.y + PORT_CENTER_Y;
             const toX = to.position.x;
-            const toY = to.position.y + 54;
-            const midX = (fromX + toX) / 2;
+            const toY = to.position.y + PORT_CENTER_Y;
+            const d = bezierPath(fromX, fromY, toX, toY);
             return (
               <g key={connection.id}>
                 <path
-                  d={`M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`}
+                  d={d}
                   fill="none"
                   stroke="#d1d5db"
                   strokeWidth="2"
                   strokeLinecap="round"
                 />
                 <path
-                  d={`M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`}
+                  d={d}
                   fill="none"
                   stroke="#6b7280"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeDasharray="6 4"
-                  className="animate-[dash_1s_linear_infinite]"
-                  style={{
-                    animation: "none",
-                  }}
                 />
               </g>
             );
           })}
+
+          {connecting && (
+            <path
+              d={bezierPath(
+                connecting.startX,
+                connecting.startY,
+                connecting.currentX,
+                connecting.currentY,
+              )}
+              fill="none"
+              stroke="#3b82f6"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeDasharray="6 4"
+              className="animate-[dash_0.6s_linear_infinite]"
+            />
+          )}
         </svg>
 
         {blocks.length === 0 ? (
@@ -155,6 +277,9 @@ export function BuilderCanvas({
           const brand = getBrand(block.id);
           const isSelected = selectedBlockId === block.instanceId;
           const isDragging = dragging?.id === block.instanceId;
+          const isDropTarget = isValidDropTarget(block.instanceId);
+          const isHoveredTarget = hoveredInputId === block.instanceId;
+
           return (
             <div
               key={block.instanceId}
@@ -162,38 +287,79 @@ export function BuilderCanvas({
                 "absolute w-[240px] touch-none select-none rounded-2xl border bg-white shadow-sm transition-all",
                 isDragging
                   ? "cursor-grabbing shadow-xl ring-2 ring-gray-900/5"
-                  : "cursor-grab",
+                  : connecting
+                    ? "cursor-default"
+                    : "cursor-grab",
                 isSelected
                   ? "border-gray-900 ring-4 ring-gray-900/5"
-                  : "border-gray-200 hover:shadow-md",
+                  : isHoveredTarget && isDropTarget
+                    ? "border-blue-400 ring-4 ring-blue-100"
+                    : "border-gray-200 hover:shadow-md",
               )}
               style={{ left: block.position.x, top: block.position.y }}
-              onPointerDown={(event) => startDrag(event, block)}
+              onPointerDown={(event) => {
+                if (!connecting) startDrag(event, block);
+              }}
               onPointerMove={moveDrag}
               onPointerUp={stopDrag}
               onPointerCancel={stopDrag}
             >
+              {/* Input port (left) */}
               <button
                 type="button"
-                className="absolute -left-2.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border-2 border-white bg-gray-400 shadow-sm transition hover:bg-gray-600"
-                onClick={() => {
-                  const previous = blocks[blocks.indexOf(block) - 1];
-                  if (previous)
-                    onConnect(previous.instanceId, block.instanceId);
+                data-input-block-id={block.instanceId}
+                className={cn(
+                  "absolute -left-2.5 top-1/2 z-10 h-5 w-5 -translate-y-1/2 rounded-full border-2 shadow-sm transition-all",
+                  isDropTarget && connecting
+                    ? isHoveredTarget
+                      ? "scale-125 border-blue-300 bg-blue-500 shadow-blue-200"
+                      : "animate-pulse border-blue-200 bg-blue-400"
+                    : "border-white bg-gray-400 hover:bg-gray-600",
+                )}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (connecting && connecting.fromBlockId !== block.instanceId) {
+                    const alreadyExists = connections.some(
+                      (c) =>
+                        c.from === connecting.fromBlockId &&
+                        c.to === block.instanceId,
+                    );
+                    if (!alreadyExists) {
+                      onConnect(connecting.fromBlockId, block.instanceId);
+                    }
+                    setConnecting(null);
+                    setHoveredInputId(null);
+                  }
+                }}
+                onPointerEnter={() => {
+                  if (connecting && isDropTarget) {
+                    setHoveredInputId(block.instanceId);
+                  }
+                }}
+                onPointerLeave={() => {
+                  if (hoveredInputId === block.instanceId) {
+                    setHoveredInputId(null);
+                  }
                 }}
                 onPointerDown={(event) => event.stopPropagation()}
-                title="Connect from previous block"
               />
+
+              {/* Output port (right) — drag starts connections */}
               <button
                 type="button"
-                className="absolute -right-2.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border-2 border-white bg-gray-900 shadow-sm transition hover:bg-gray-700"
-                onClick={() => {
-                  const next = blocks[blocks.indexOf(block) + 1];
-                  if (next) onConnect(block.instanceId, next.instanceId);
+                className={cn(
+                  "absolute -right-2.5 top-1/2 z-10 h-5 w-5 -translate-y-1/2 rounded-full border-2 border-white shadow-sm transition-all",
+                  connecting?.fromBlockId === block.instanceId
+                    ? "scale-110 bg-blue-500 ring-4 ring-blue-100"
+                    : "bg-gray-900 hover:scale-110 hover:bg-blue-600",
+                )}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                  startConnecting(event, block);
                 }}
-                onPointerDown={(event) => event.stopPropagation()}
-                title="Connect to next block"
+                title="Drag to connect"
               />
+
               <div className="p-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-3">
