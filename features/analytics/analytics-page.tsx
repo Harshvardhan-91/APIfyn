@@ -187,25 +187,24 @@ export function AnalyticsPage() {
 
   const totalRuns = workflows.reduce((s, w) => s + (w.totalRuns ?? 0), 0);
   const activeCount = workflows.filter((w) => w.isActive).length;
-  const successRuns = workflows.reduce(
-    (s, w) => s + (w.successfulRuns ?? 0),
-    0,
-  );
-  const failedRuns = workflows.reduce((s, w) => s + (w.failedRuns ?? 0), 0);
-  const overallSuccessRate =
-    totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 0;
-
-  const avgDurationAll =
-    workflows.filter((w) => w.avgExecutionTime).length > 0
-      ? Math.round(
-          workflows.reduce((s, w) => s + (w.avgExecutionTime ?? 0), 0) /
-            workflows.filter((w) => w.avgExecutionTime).length,
-        )
-      : 0;
 
   const dailyStats = analytics?.dailyStats ?? [];
   const avgDurations = analytics?.avgDurations ?? [];
   const peakHours = analytics?.peakHours ?? [];
+
+  const successRuns = dailyStats.reduce((s, d) => s + (d.succeeded ?? 0), 0);
+  const failedRuns = dailyStats.reduce((s, d) => s + (d.failed ?? 0), 0);
+  const analyticsTotal = successRuns + failedRuns;
+  const overallSuccessRate =
+    analyticsTotal > 0 ? Math.round((successRuns / analyticsTotal) * 100) : 0;
+
+  const avgDurationAll =
+    avgDurations.length > 0
+      ? Math.round(
+          avgDurations.reduce((s, w) => s + w.avg_duration_ms, 0) /
+            avgDurations.length,
+        )
+      : 0;
 
   const last7Days = dailyStats.slice(0, 7).reverse();
   const maxDaily = Math.max(...last7Days.map((d) => d.total), 1);
