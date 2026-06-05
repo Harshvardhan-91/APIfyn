@@ -66,6 +66,7 @@ model Integration {
   userId         String
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, type])
   @@map("integrations")
 }
 
@@ -88,6 +89,9 @@ model Workflow {
   user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   executions     WorkflowExecution[]
 
+  @@index([userId, isActive])
+  @@index([userId, createdAt])
+  @@index([status])
   @@map("workflows")
 }
 
@@ -105,6 +109,9 @@ model WorkflowExecution {
   workflow      Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([workflowId, startedAt])
+  @@index([userId, status])
+  @@index([status, startedAt])
   @@map("workflow_executions")
 }
 

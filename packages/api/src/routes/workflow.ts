@@ -5,6 +5,7 @@ import {
   authenticateFirebaseToken,
 } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
+import { CacheService } from "../services/cache.service";
 import { OAuthService } from "../services/oauth.service";
 import {
   canCreateWorkflow,
@@ -19,6 +20,16 @@ import { createLogger } from "../utils/logger";
 
 const router = express.Router();
 const logger = createLogger();
+
+const WORKFLOW_LIST_CACHE_TTL = 120; // 2 minutes
+
+async function invalidateWorkflowCaches(userId: string) {
+  await Promise.all([
+    CacheService.del(`cache:workflows:${userId}`),
+    CacheService.del(`cache:dashboard:${userId}`),
+    CacheService.del(`cache:plan-limits:${userId}`),
+  ]);
+}
 
 // Create a new workflow
 router.post(
@@ -79,6 +90,8 @@ router.post(
       logger.info(
         `Workflow created successfully: ${workflow.id} for user ${user.id}`,
       );
+
+      await invalidateWorkflowCaches(user.id);
 
       // Auto-setup webhooks for GitHub trigger workflows
       if (workflow.isActive) {
@@ -186,6 +199,8 @@ router.put(
         `Workflow updated successfully: ${workflow.id} for user ${user.id}`,
       );
 
+      await invalidateWorkflowCaches(user.id);
+
       // Handle webhook setup/teardown based on isActive status
       if (workflow.isActive && !existingWorkflow.isActive) {
         // Workflow was activated - setup webhooks
@@ -247,6 +262,12 @@ router.get(
     const user = req.user;
 
     try {
+      const cacheKey = `cache:workflows:${user.id}`;
+      const cached = await CacheService.get(cacheKey);
+      if (cached) {
+        return res.json({ success: true, workflows: cached });
+      }
+
       const workflows = await prisma.workflow.findMany({
         where: {
           userId: user.id,
@@ -273,20 +294,24 @@ router.get(
         executionCounts.map((ec) => [ec.workflowId, ec._count.workflowId]),
       );
 
+      const workflowList = workflows.map((workflow) => ({
+        id: workflow.id,
+        name: workflow.name,
+        description: workflow.description,
+        definition: redactWorkflowDefinitionForClient(workflow.definition),
+        category: workflow.category,
+        triggerType: workflow.triggerType,
+        isActive: workflow.isActive,
+        createdAt: workflow.createdAt,
+        updatedAt: workflow.updatedAt,
+        totalRuns: countMap[workflow.id] || 0,
+      }));
+
+      await CacheService.set(cacheKey, workflowList, WORKFLOW_LIST_CACHE_TTL);
+
       return res.json({
         success: true,
-        workflows: workflows.map((workflow) => ({
-          id: workflow.id,
-          name: workflow.name,
-          description: workflow.description,
-          definition: redactWorkflowDefinitionForClient(workflow.definition),
-          category: workflow.category,
-          triggerType: workflow.triggerType,
-          isActive: workflow.isActive,
-          createdAt: workflow.createdAt,
-          updatedAt: workflow.updatedAt,
-          totalRuns: countMap[workflow.id] || 0,
-        })),
+        workflows: workflowList,
       });
     } catch (error) {
       logger.error("Error fetching workflows:", error);
@@ -402,6 +427,73 @@ router.get(
   }),
 );
 
+// Get workflow executions with cursor-based pagination
+router.get(
+  "/:id/executions",
+  authenticateFirebaseToken,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const user = req.user;
+    const { id } = req.params;
+    const cursor = req.query.cursor as string | undefined;
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const status = req.query.status as string | undefined;
+
+    try {
+      const workflow = await prisma.workflow.findFirst({
+        where: { id, userId: user.id },
+        select: { id: true },
+      });
+
+      if (!workflow) {
+        return res.status(404).json({ success: false, error: "Workflow not found" });
+      }
+
+      const where: any = { workflowId: id };
+      if (status) {
+        where.status = status.toUpperCase();
+      }
+
+      const executions = await prisma.workflowExecution.findMany({
+        where,
+        orderBy: { startedAt: "desc" },
+        take: limit + 1,
+        ...(cursor
+          ? { cursor: { id: cursor }, skip: 1 }
+          : {}),
+        select: {
+          id: true,
+          status: true,
+          startedAt: true,
+          completedAt: true,
+          duration: true,
+          errorMessage: true,
+        },
+      });
+
+      const hasMore = executions.length > limit;
+      const items = hasMore ? executions.slice(0, limit) : executions;
+      const lastItem = items[items.length - 1];
+      const nextCursor = hasMore && lastItem ? lastItem.id : null;
+
+      return res.json({
+        success: true,
+        executions: items,
+        pagination: {
+          nextCursor,
+          hasMore,
+          limit,
+        },
+      });
+    } catch (error) {
+      logger.error("Error fetching executions:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to fetch executions",
+      });
+    }
+  }),
+);
+
 // Update workflow status (activate/deactivate)
 router.patch(
   "/:id",
@@ -428,6 +520,8 @@ router.patch(
           error: "Workflow not found",
         });
       }
+
+      await invalidateWorkflowCaches(user.id);
 
       return res.json({
         success: true,
@@ -470,6 +564,8 @@ router.patch(
         });
       }
 
+      await invalidateWorkflowCaches(user.id);
+
       return res.json({
         success: true,
         message: `Workflow ${isActive ? "activated" : "paused"} successfully`,
@@ -506,6 +602,8 @@ router.delete(
           error: "Workflow not found",
         });
       }
+
+      await invalidateWorkflowCaches(user.id);
 
       return res.json({
         success: true,

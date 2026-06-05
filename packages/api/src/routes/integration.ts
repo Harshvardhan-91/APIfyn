@@ -6,6 +6,7 @@ import {
   authenticateToken,
 } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
+import { CacheService } from "../services/cache.service";
 import { OAuthService } from "../services/oauth.service";
 import { createLogger } from "../utils/logger";
 
@@ -448,6 +449,9 @@ router.delete(
           type: integrationType as any,
         },
       });
+
+      await CacheService.delPattern(`cache:integration:${user.id}:*`);
+      await CacheService.del(`cache:dashboard:${user.id}`);
 
       return res.json({
         success: true,

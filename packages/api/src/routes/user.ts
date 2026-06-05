@@ -5,12 +5,15 @@ import {
   authenticateFirebaseToken,
 } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
+import { CacheService } from "../services/cache.service";
 import { getUserPlanLimits } from "../services/plan.service";
 import { encryptSecret, isSecretsEncryptionConfigured } from "../utils/secret-encryption";
 import { createLogger } from "../utils/logger";
 
 const router = express.Router();
 const logger = createLogger();
+
+const DASHBOARD_CACHE_TTL = 60; // 1 minute
 
 // Get user dashboard data
 router.get(
@@ -19,8 +22,13 @@ router.get(
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const user = req.user;
 
+    const cacheKey = `cache:dashboard:${user.id}`;
+    const cached = await CacheService.get(cacheKey);
+    if (cached) {
+      return res.json({ success: true, data: cached });
+    }
+
     try {
-      // Get actual workflow statistics from database
       const totalWorkflows = await prisma.workflow.count({
         where: { userId: user.id },
       });
@@ -128,6 +136,8 @@ router.get(
           timestamp: execution.startedAt.toISOString(),
         })),
       };
+
+      await CacheService.set(cacheKey, dashboardData, DASHBOARD_CACHE_TTL);
 
       return res.json({
         success: true,
@@ -238,6 +248,8 @@ router.put(
       },
     });
 
+    await CacheService.del(`cache:user:${user.id}`);
+
     res.json({
       success: true,
       user: {
@@ -250,6 +262,106 @@ router.put(
         jobTitle: updatedUser.jobTitle,
       },
     });
+  }),
+);
+
+// Raw SQL analytics — demonstrates SQL proficiency beyond ORM
+router.get(
+  "/analytics",
+  authenticateFirebaseToken,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const user = req.user;
+
+    try {
+      // Daily execution success rate over last 30 days
+      const dailyStats = await prisma.$queryRaw<
+        Array<{
+          date: string;
+          total: bigint;
+          succeeded: bigint;
+          failed: bigint;
+          success_rate: number;
+        }>
+      >`
+        SELECT
+          DATE(we."startedAt") AS date,
+          COUNT(*)::bigint AS total,
+          COUNT(*) FILTER (WHERE we.status = 'SUCCESS')::bigint AS succeeded,
+          COUNT(*) FILTER (WHERE we.status = 'FAILED')::bigint AS failed,
+          ROUND(
+            COUNT(*) FILTER (WHERE we.status = 'SUCCESS')::numeric
+            / NULLIF(COUNT(*), 0) * 100, 1
+          ) AS success_rate
+        FROM workflow_executions we
+        JOIN workflows w ON w.id = we."workflowId"
+        WHERE w."userId" = ${user.id}
+          AND we."startedAt" >= NOW() - INTERVAL '30 days'
+        GROUP BY DATE(we."startedAt")
+        ORDER BY date DESC
+      `;
+
+      // Average execution duration per workflow
+      const avgDurations = await prisma.$queryRaw<
+        Array<{
+          workflow_id: string;
+          workflow_name: string;
+          avg_duration_ms: number;
+          total_runs: bigint;
+        }>
+      >`
+        SELECT
+          w.id AS workflow_id,
+          w.name AS workflow_name,
+          ROUND(AVG(we.duration)::numeric, 0) AS avg_duration_ms,
+          COUNT(*)::bigint AS total_runs
+        FROM workflow_executions we
+        JOIN workflows w ON w.id = we."workflowId"
+        WHERE w."userId" = ${user.id}
+          AND we.duration IS NOT NULL
+        GROUP BY w.id, w.name
+        ORDER BY avg_duration_ms DESC
+        LIMIT 10
+      `;
+
+      // Peak usage hours (UTC)
+      const peakHours = await prisma.$queryRaw<
+        Array<{ hour: number; execution_count: bigint }>
+      >`
+        SELECT
+          EXTRACT(HOUR FROM we."startedAt")::int AS hour,
+          COUNT(*)::bigint AS execution_count
+        FROM workflow_executions we
+        JOIN workflows w ON w.id = we."workflowId"
+        WHERE w."userId" = ${user.id}
+          AND we."startedAt" >= NOW() - INTERVAL '30 days'
+        GROUP BY EXTRACT(HOUR FROM we."startedAt")
+        ORDER BY execution_count DESC
+      `;
+
+      const serialize = (rows: any[]) =>
+        rows.map((r) => {
+          const obj: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(r)) {
+            obj[k] = typeof v === "bigint" ? Number(v) : v;
+          }
+          return obj;
+        });
+
+      return res.json({
+        success: true,
+        analytics: {
+          dailyStats: serialize(dailyStats),
+          avgDurations: serialize(avgDurations),
+          peakHours: serialize(peakHours),
+        },
+      });
+    } catch (error) {
+      logger.error("Error fetching analytics:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to fetch analytics",
+      });
+    }
   }),
 );
 

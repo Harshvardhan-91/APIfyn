@@ -7,6 +7,7 @@ import {
   authenticateFirebaseToken,
 } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
+import { CacheService } from "../services/cache.service";
 import { createLogger } from "../utils/logger";
 
 const router = express.Router();
@@ -253,6 +254,9 @@ router.post(
       data: { apiCallsUsed: 0, apiCallsResetAt: periodEnd },
     });
 
+    await CacheService.del(`cache:plan-limits:${subscription.userId}`);
+    await CacheService.del(`cache:user:${subscription.userId}`);
+
     logger.info(
       `Subscription activated: ${subscription.razorpaySubId}, plan: ${subscription.plan.name}`,
     );
@@ -298,6 +302,8 @@ router.post(
       where: { id: subscription.id },
       data: { status: "CANCELLED" },
     });
+
+    await CacheService.del(`cache:plan-limits:${user.id}`);
 
     logger.info(
       `Subscription cancelled: ${subscription.razorpaySubId} for user ${user.id}`,
@@ -375,6 +381,9 @@ router.post(
             where: { id: sub.userId },
             data: { apiCallsUsed: 0, apiCallsResetAt: periodEnd },
           });
+
+          await CacheService.del(`cache:plan-limits:${sub.userId}`);
+          await CacheService.del(`cache:user:${sub.userId}`);
 
           logger.info(`Subscription ${rzSubId} activated/renewed via webhook`);
         }

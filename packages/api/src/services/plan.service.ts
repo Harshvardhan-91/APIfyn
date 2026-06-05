@@ -1,7 +1,11 @@
 import { prisma } from "../db";
+import { CacheService } from "./cache.service";
 import { createLogger } from "../utils/logger";
 
 const logger = createLogger();
+
+const PLAN_LIMITS_TTL = 120; // 2 minutes
+const STARTER_PLAN_TTL = 3600; // 1 hour
 
 export type PlanLimits = {
   planName: string;
@@ -13,6 +17,10 @@ export type PlanLimits = {
 };
 
 export async function getUserPlanLimits(userId: string): Promise<PlanLimits> {
+  const cacheKey = `cache:plan-limits:${userId}`;
+  const cached = await CacheService.get<PlanLimits>(cacheKey);
+  if (cached) return cached;
+
   const subscription = await prisma.subscription.findUnique({
     where: { userId },
     include: { plan: true },
@@ -22,9 +30,17 @@ export async function getUserPlanLimits(userId: string): Promise<PlanLimits> {
     subscription &&
     ["ACTIVE", "AUTHENTICATED"].includes(subscription.status);
 
-  const plan = hasPaidPlan
-    ? subscription.plan
-    : await prisma.plan.findUnique({ where: { slug: "starter" } });
+  let plan = hasPaidPlan ? subscription.plan : null;
+
+  if (!plan) {
+    plan = await CacheService.get<typeof plan>(`cache:plan:starter`);
+    if (!plan) {
+      plan = await prisma.plan.findUnique({ where: { slug: "starter" } });
+      if (plan) {
+        await CacheService.set("cache:plan:starter", plan, STARTER_PLAN_TTL);
+      }
+    }
+  }
 
   const workflowsUsed = await prisma.workflow.count({ where: { userId } });
 
@@ -33,7 +49,6 @@ export async function getUserPlanLimits(userId: string): Promise<PlanLimits> {
     select: { apiCallsUsed: true, apiCallsResetAt: true },
   });
 
-  // Auto-reset API calls if past reset date
   let apiCallsUsed = user?.apiCallsUsed ?? 0;
   if (user?.apiCallsResetAt && new Date() > user.apiCallsResetAt) {
     const nextReset = new Date(user.apiCallsResetAt);
@@ -45,7 +60,7 @@ export async function getUserPlanLimits(userId: string): Promise<PlanLimits> {
     apiCallsUsed = 0;
   }
 
-  return {
+  const limits: PlanLimits = {
     planName: plan?.name ?? "Starter",
     planSlug: plan?.slug ?? "starter",
     workflowsLimit: plan?.workflowsLimit ?? 2,
@@ -53,6 +68,9 @@ export async function getUserPlanLimits(userId: string): Promise<PlanLimits> {
     workflowsUsed,
     apiCallsUsed,
   };
+
+  await CacheService.set(cacheKey, limits, PLAN_LIMITS_TTL);
+  return limits;
 }
 
 export function canCreateWorkflow(limits: PlanLimits): boolean {

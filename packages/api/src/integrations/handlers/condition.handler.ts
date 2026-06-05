@@ -1,7 +1,7 @@
 import type { BlockContext, BlockResult, IntegrationHandler } from "../base";
 import { IntegrationRegistry } from "../registry";
 
-function evaluateCondition(
+export function evaluateCondition(
   actual: string,
   operator: string,
   value: string,
@@ -32,7 +32,7 @@ function evaluateCondition(
   }
 }
 
-function resolveField(
+export function resolveField(
   data: Record<string, unknown>,
   field: string,
 ): string {

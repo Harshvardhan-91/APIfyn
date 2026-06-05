@@ -2,6 +2,7 @@ import type { User } from "@prisma/client";
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../db";
+import { CacheService } from "../services/cache.service";
 
 declare global {
   namespace Express {
@@ -16,6 +17,7 @@ export interface AuthenticatedRequest extends Request {
 }
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret";
+const USER_CACHE_TTL = 300; // 5 minutes
 
 export function signJwt(payload: { userId: string; email: string }): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
@@ -41,9 +43,18 @@ export const authenticateToken = async (
       email: string;
     };
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-    });
+    const cacheKey = `cache:user:${decoded.userId}`;
+    let user = await CacheService.get<User>(cacheKey);
+
+    if (!user) {
+      user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+      });
+
+      if (user) {
+        await CacheService.set(cacheKey, user, USER_CACHE_TTL);
+      }
+    }
 
     if (!user) {
       res.status(401).json({ error: "User not found" });

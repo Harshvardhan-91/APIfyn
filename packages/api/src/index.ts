@@ -23,6 +23,7 @@ import subscriptionRoutes from "./routes/subscription";
 import userRoutes from "./routes/user";
 import webhookRoutes from "./routes/webhook";
 import workflowRoutes from "./routes/workflow";
+import { CacheService } from "./services/cache.service";
 import { KeepAliveService } from "./services/keepAlive.service";
 import { getDatabaseUrl } from "./utils/env";
 import { createLogger } from "./utils/logger";
@@ -234,8 +235,9 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
 
   try {
+    await CacheService.disconnect();
     await prisma.$disconnect();
-    logger.info("Database disconnected");
+    logger.info("Database and cache disconnected");
 
     process.exit(0);
   } catch (error) {
@@ -297,6 +299,10 @@ process.on("SIGINT", () => {
   process.exit(0);
 });
 
-startServer();
+export { app };
+
+if (require.main === module || !process.env.JEST_WORKER_ID) {
+  startServer();
+}
 
 export default app;

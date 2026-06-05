@@ -10,7 +10,10 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "dev:watch": "nodemon --exec ts-node src/index.ts",
     "dev:worker": "ts-node-dev --respawn --transpile-only src/worker.ts",
-    "test": "jest"
+    "test": "jest --forceExit --detectOpenHandles",
+    "test:unit": "jest --forceExit --testPathPattern=unit",
+    "test:integration": "jest --forceExit --detectOpenHandles --testPathPattern=integration",
+    "test:coverage": "jest --forceExit --detectOpenHandles --coverage"
   },
   "dependencies": {
     "@apifyn/database": "workspace:*",
@@ -39,6 +42,8 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.8",
+    "@types/supertest": "^6.0.2",
+    "supertest": "^7.1.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.0.15",
     "@types/nodemailer": "^8.0.0",

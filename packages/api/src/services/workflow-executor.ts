@@ -11,14 +11,14 @@ import { createLogger } from "../utils/logger";
 
 const logger = createLogger();
 
-interface DefinitionBlock {
+export interface DefinitionBlock {
   id: string;
   type: string;
   config?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
-interface DefinitionConnection {
+export interface DefinitionConnection {
   id: string;
   from: string;
   to: string;
@@ -29,7 +29,7 @@ interface WorkflowDefinition {
   connections?: DefinitionConnection[];
 }
 
-function topologicalSort(
+export function topologicalSort(
   blocks: DefinitionBlock[],
   connections: DefinitionConnection[],
 ): DefinitionBlock[] {

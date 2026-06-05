@@ -7,6 +7,7 @@ import {
   signJwt,
 } from "../middleware/auth";
 import { CustomError, asyncHandler } from "../middleware/errorHandler";
+import { CacheService } from "../services/cache.service";
 import { createLogger } from "../utils/logger";
 
 const router = express.Router();
@@ -262,6 +263,8 @@ router.delete(
     await prisma.user.delete({
       where: { id: user.id },
     });
+
+    await CacheService.invalidateUser(user.id);
 
     logger.info(`User account deleted: ${user.email}`);
 
