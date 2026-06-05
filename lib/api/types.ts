@@ -77,6 +77,26 @@ export type Workflow = {
   }>;
 };
 
+export type AnalyticsData = {
+  dailyStats: Array<{
+    date: string;
+    total: number;
+    succeeded: number;
+    failed: number;
+    success_rate: number | null;
+  }>;
+  avgDurations: Array<{
+    workflow_id: string;
+    workflow_name: string;
+    avg_duration_ms: number;
+    total_runs: number;
+  }>;
+  peakHours: Array<{
+    hour: number;
+    execution_count: number;
+  }>;
+};
+
 export type IntegrationStatus = {
   github: { connected: boolean; user: unknown; loading?: boolean };
   slack: { connected: boolean; workspaces: unknown[]; loading?: boolean };
