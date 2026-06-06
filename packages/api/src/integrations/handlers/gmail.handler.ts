@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import { createLogger } from "../../utils/logger";
 import type { BlockContext, BlockResult, IntegrationHandler } from "../base";
 import { IntegrationRegistry } from "../registry";
@@ -20,7 +21,7 @@ function getTransporter() {
     secure: port === 465,
     auth: { user, pass },
     family: 4,
-  });
+  } as SMTPTransport.Options);
 }
 
 function escapeHtml(text: string): string {
