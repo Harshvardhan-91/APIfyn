@@ -494,6 +494,79 @@ router.get(
   }),
 );
 
+// Get a single execution, including its input/output, for polling a run's result
+router.get(
+  "/:id/executions/:executionId",
+  authenticateFirebaseToken,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { id, executionId } = req.params;
+
+    const execution = await prisma.workflowExecution.findFirst({
+      where: { id: executionId, workflowId: id, userId: req.user.id },
+      select: {
+        id: true,
+        status: true,
+        startedAt: true,
+        completedAt: true,
+        duration: true,
+        errorMessage: true,
+        inputData: true,
+        outputData: true,
+      },
+    });
+
+    if (!execution) {
+      return res.status(404).json({ success: false, error: "Execution not found" });
+    }
+
+    return res.json({ success: true, execution });
+  }),
+);
+
+// Run a workflow now with an optional trigger payload (used by the MCP server and API clients)
+router.post(
+  "/:id/run",
+  authenticateFirebaseToken,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { id } = req.params;
+    const payload = req.body?.payload ?? {};
+
+    if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+      return res.status(400).json({
+        success: false,
+        error: "payload must be a JSON object",
+      });
+    }
+
+    const workflow = await prisma.workflow.findFirst({
+      where: { id, userId: req.user.id },
+      select: { id: true, isActive: true },
+    });
+
+    if (!workflow) {
+      return res.status(404).json({ success: false, error: "Workflow not found" });
+    }
+
+    if (!workflow.isActive) {
+      return res.status(409).json({
+        success: false,
+        error: "Workflow is paused. Activate it before running.",
+        code: "WORKFLOW_INACTIVE",
+      });
+    }
+
+    const executionId = await WebhookService.enqueueWorkflow(
+      workflow.id,
+      "manual",
+      payload,
+    );
+
+    logger.info(`Manual run of workflow ${workflow.id} queued as ${executionId} (${req.authMethod})`);
+
+    return res.status(202).json({ success: true, executionId, status: "PENDING" });
+  }),
+);
+
 // Update workflow status (activate/deactivate)
 router.patch(
   "/:id",

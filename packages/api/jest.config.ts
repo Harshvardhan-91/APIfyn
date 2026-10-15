@@ -13,7 +13,7 @@ const config: Config = {
     "!src/integrations/handlers/register.ts",
   ],
   coverageDirectory: "coverage",
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 60,
       functions: 60,
@@ -21,7 +21,7 @@ const config: Config = {
       statements: 70,
     },
   },
-  setupFilesAfterSetup: [],
+  setupFilesAfterEnv: [],
   transform: {
     "^.+\\.ts$": [
       "ts-jest",

@@ -45,12 +45,29 @@ model User {
   lastLoginAt      DateTime?
   /// AES-GCM–encrypted OpenAI API key (optional default for `openai-action` blocks)
   openaiKeyEnc     String?
+  apiKeys          ApiKey[]
   integrations     Integration[]
   executions       WorkflowExecution[]
   workflows        Workflow[]
   subscription     Subscription?
 
   @@map("users")
+}
+
+/// Personal access keys for programmatic access (e.g. the APIfyn MCP server).
+/// Only the SHA-256 hash is stored; the plaintext key is shown once at creation.
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  prefix     String    // first characters of the key, shown in the UI to identify it
+  keyHash    String    @unique
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_keys")
 }
 
 model Integration {

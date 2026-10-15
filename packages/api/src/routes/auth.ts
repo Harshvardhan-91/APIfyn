@@ -4,6 +4,7 @@ import { prisma } from "../db";
 import {
   type AuthenticatedRequest,
   authenticateToken,
+  requireSessionAuth,
   signJwt,
 } from "../middleware/auth";
 import { CustomError, asyncHandler } from "../middleware/errorHandler";
@@ -257,6 +258,7 @@ router.post(
 router.delete(
   "/delete-account",
   authenticateToken,
+  requireSessionAuth,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const user = req.user;
 

@@ -55,6 +55,14 @@ export const prismaMock = {
     deleteMany: jest.fn(),
     count: jest.fn(),
   },
+  apiKey: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    deleteMany: jest.fn(),
+    count: jest.fn(),
+  },
   plan: {
     findUnique: jest.fn(),
     findFirst: jest.fn(),

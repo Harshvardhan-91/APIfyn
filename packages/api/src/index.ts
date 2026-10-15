@@ -16,6 +16,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import { createWorkflowWorker } from "./queue/worker";
 import adminRoutes from "./routes/admin";
 import aiRoutes from "./routes/ai";
+import apiKeyRoutes from "./routes/api-keys";
 import authRoutes from "./routes/auth";
 import integrationRoutes from "./routes/integration";
 import notificationRoutes from "./routes/notification";
@@ -163,6 +164,7 @@ app.use("/api/webhooks", webhookRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/api-keys", apiKeyRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 
 // Health check endpoint

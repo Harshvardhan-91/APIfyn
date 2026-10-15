@@ -4,6 +4,8 @@
 
 APIfyn lets you create event-driven automations without writing code. A GitHub push can trigger a Slack notification, send a summary email, and log it to a spreadsheet — all configured through a visual drag-and-drop builder.
 
+Workflows can also be built and run from AI assistants (Claude, Cursor, ChatGPT) through the [APIfyn MCP server](#ai-assistants-mcp).
+
 ---
 
 ## Tech Stack
@@ -18,6 +20,7 @@ APIfyn lets you create event-driven automations without writing code. A GitHub p
 | Auth | Google Identity Services → backend verifies → issues custom JWT |
 | Linting | Biome (replaces ESLint + Prettier) |
 | Monorepo | pnpm workspaces (`packages/api`, `packages/database`) |
+| AI integration | [MCP server](https://github.com/Harshvardhan-91/apifyn-mcp) (separate repo) using API-key auth |
 | Infrastructure | Docker Compose (dev & prod), mprocs for local multi-process |
 
 ## Architecture Overview
@@ -132,7 +135,7 @@ APIfyn lets you create event-driven automations without writing code. A GitHub p
 │   │   │   ├── worker.ts         Standalone BullMQ worker process
 │   │   │   ├── db.ts             Prisma client singleton
 │   │   │   ├── load-env.ts       Robust .env loading
-│   │   │   ├── middleware/       Auth, API key, rate limit, error handler
+│   │   │   ├── middleware/       Auth (JWT or apf_ API key), rate limit, error handler
 │   │   │   ├── routes/           REST endpoints (auth, workflow, webhook, etc.)
 │   │   │   ├── services/         Business logic
 │   │   │   │   ├── workflow-executor.ts  Sequential block execution engine
@@ -297,6 +300,7 @@ See `.env.example` for the full list with defaults and comments.
 | `Workflow` | User-created automation with JSON block definition |
 | `WorkflowExecution` | Individual run record with status, duration, I/O data |
 | `Plan` | Subscription tier with limits and pricing |
+| `ApiKey` | Personal access key for the MCP server and scripts (only a SHA-256 hash is stored) |
 
 ## Integrations
 
@@ -354,6 +358,27 @@ Mark execution as SUCCESS or FAILED with duration + output data
 5. **Save & activate** — the workflow starts listening for events.
 6. **Events fire** — webhooks are received, jobs queued, blocks executed in sequence.
 7. **Monitor** — view execution history, success rates, and test workflows from the detail page.
+
+### AI Assistants (MCP)
+
+APIfyn has an [MCP](https://modelcontextprotocol.io) server, maintained in its own repo: [apifyn-mcp](https://github.com/Harshvardhan-91/apifyn-mcp). It lets AI assistants manage automations by chatting:
+
+> "When someone pushes to `harsh/apifyn`, post the commit to #deploys on Slack." → the assistant checks connected apps, creates the workflow, and can activate, run and debug it.
+
+```mermaid
+flowchart LR
+    AI["AI client"] -->|MCP tools| MCP["APIfyn MCP"]
+    MCP -->|REST + apf_ key| API["APIfyn API"]
+    API --> Queue["BullMQ"] --> Worker["Worker"]
+```
+
+What the API provides for it:
+
+- **API keys**: users create `apf_...` keys in **Settings → API keys**. Only a SHA-256 hash is stored, and the plaintext is shown once. The auth middleware accepts either a session JWT or an API key as the bearer token. API keys are blocked from minting new keys and from deleting the account.
+- **`POST /api/workflow/:id/run`**: an authenticated "run now" endpoint that takes a custom trigger payload and returns an `executionId`.
+- **`GET /api/workflow/:id/executions/:executionId`**: fetch a single run's status, input, output and error.
+
+Tools exposed: `list_workflows`, `get_workflow`, `list_integrations`, `create_workflow` (plain English via the AI builder, or an explicit definition), `set_workflow_active`, `run_workflow`, `list_executions`, `get_execution`, `delete_workflow`. It runs locally over stdio or hosted over stateless Streamable HTTP. See the [apifyn-mcp README](https://github.com/Harshvardhan-91/apifyn-mcp#readme) for client setup.
 
 ### Visual Workflow Builder
 

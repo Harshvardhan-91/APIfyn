@@ -11,10 +11,13 @@ import { apiFetch } from "@/lib/api/client";
 import {
   ArrowUpRight,
   Bell,
+  Copy,
   CreditCard,
   Globe,
+  KeyRound,
   Loader2,
   Shield,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ComponentType, ReactNode } from "react";
@@ -147,6 +150,171 @@ function OpenAIKeySettings() {
           )}
         </div>
       </div>
+    </SettingsSection>
+  );
+}
+
+type ApiKeySummary = {
+  id: string;
+  name: string;
+  prefix: string;
+  lastUsedAt: string | null;
+  createdAt: string;
+};
+
+function ApiKeySettings() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [keys, setKeys] = useState<ApiKeySummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [newKey, setNewKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.token) return;
+    let cancelled = false;
+    setLoading(true);
+    apiFetch<{ success: boolean; apiKeys: ApiKeySummary[] }>("/api/api-keys", {
+      token: user.token,
+    })
+      .then((r) => {
+        if (!cancelled) setKeys(r.apiKeys);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.token]);
+
+  async function createKey() {
+    if (!user?.token || !name.trim()) return;
+    setCreating(true);
+    try {
+      const r = await apiFetch<{ key: string; apiKey: ApiKeySummary }>(
+        "/api/api-keys",
+        {
+          method: "POST",
+          token: user.token,
+          body: JSON.stringify({ name: name.trim() }),
+        },
+      );
+      setKeys((prev) => [r.apiKey, ...prev]);
+      setNewKey(r.key);
+      setName("");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to create key", "error");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function revokeKey(id: string) {
+    if (!user?.token) return;
+    try {
+      await apiFetch(`/api/api-keys/${id}`, {
+        method: "DELETE",
+        token: user.token,
+      });
+      setKeys((prev) => prev.filter((k) => k.id !== id));
+      toast("API key revoked", "info");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to revoke key", "error");
+    }
+  }
+
+  async function copyNewKey() {
+    if (!newKey) return;
+    await navigator.clipboard.writeText(newKey);
+    toast("Copied to clipboard", "success");
+  }
+
+  return (
+    <SettingsSection icon={KeyRound} title="API keys">
+      <p className="text-sm text-gray-500">
+        Use an API key to connect the <strong>APIfyn MCP server</strong> to
+        Claude, Cursor or ChatGPT, or to call the API from your own scripts. A
+        key has the same access as your account, except it can't create other
+        keys or delete your account.
+      </p>
+
+      {newKey ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <p className="text-xs font-medium text-amber-800">
+            Copy this key now. You won't be able to see it again.
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded-lg bg-white px-2 py-1.5 font-mono text-xs text-gray-900">
+              {newKey}
+            </code>
+            <Button type="button" variant="secondary" onClick={copyNewKey}>
+              <Copy className="h-3.5 w-3.5" /> Copy
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setNewKey(null)}>
+              Done
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="min-w-0 flex-1">
+          <span className="text-xs text-gray-600">Key name</span>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Cursor on my laptop"
+            maxLength={60}
+            className="mt-1"
+          />
+        </div>
+        <Button
+          type="button"
+          onClick={createKey}
+          disabled={creating || !name.trim()}
+        >
+          {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create key"}
+        </Button>
+      </div>
+
+      {loading ? (
+        <p className="text-xs text-gray-400">Loading…</p>
+      ) : keys.length === 0 ? (
+        <p className="text-xs text-gray-400">No API keys yet.</p>
+      ) : (
+        <ul className="divide-y divide-gray-100 rounded-xl border border-gray-100">
+          {keys.map((k) => (
+            <li
+              key={k.id}
+              className="flex items-center justify-between gap-3 px-3 py-2"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-gray-900">
+                  {k.name}
+                </p>
+                <p className="text-xs text-gray-500">
+                  <code className="font-mono">{k.prefix}…</code> · created{" "}
+                  {new Date(k.createdAt).toLocaleDateString()} ·{" "}
+                  {k.lastUsedAt
+                    ? `last used ${new Date(k.lastUsedAt).toLocaleDateString()}`
+                    : "never used"}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => revokeKey(k.id)}
+                aria-label={`Revoke ${k.name}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
     </SettingsSection>
   );
 }
@@ -313,6 +481,7 @@ export function SettingsPage() {
           />
         </SettingsSection>
         <OpenAIKeySettings />
+        <ApiKeySettings />
         <SettingsSection icon={Shield} title="Privacy">
           <Toggle
             label="Public profile"
