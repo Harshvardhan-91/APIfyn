@@ -1,6 +1,8 @@
 // Environment variables configuration for production deployment
 
-// This file helps ensure the DATABASE_URL has the correct SSL settings for Render PostgreSQL
+// This file helps ensure the DATABASE_URL has the correct SSL settings for hosted PostgreSQL
+
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "postgres"]);
 
 export function getDatabaseUrl(): string {
   const dbUrl = process.env.DATABASE_URL;
@@ -9,12 +11,21 @@ export function getDatabaseUrl(): string {
     throw new Error("DATABASE_URL environment variable is not set");
   }
 
-  // Check if URL already has SSL settings
-  if (dbUrl.includes("sslmode=require") || dbUrl.includes("ssl=true")) {
+  // Respect an explicit SSL setting (e.g. sslmode=disable)
+  if (/[?&](sslmode|ssl)=/.test(dbUrl)) {
     return dbUrl;
   }
 
-  // Add SSL settings for Render PostgreSQL
+  // Local Docker Postgres doesn't serve TLS
+  try {
+    if (LOCAL_HOSTS.has(new URL(dbUrl).hostname)) {
+      return dbUrl;
+    }
+  } catch {
+    // Fall through and let Prisma report the malformed URL
+  }
+
+  // Hosted Postgres (Supabase, Render) requires SSL
   const separator = dbUrl.includes("?") ? "&" : "?";
   return `${dbUrl}${separator}sslmode=require&ssl=true`;
 }
